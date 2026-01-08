@@ -1,0 +1,30 @@
+{
+  "activity.cardio.title": "Haz ejercicio cardiovascular",
+  "activity.daily_walk.title": "Camina todos los días",
+  "activity.strength_training.title": "Entrena fuerza 2 veces por semana",
+  "activity.no_sedentary_days.title": "Evita días completamente sedentarios",
+  "activity.active_breaks.title": "Toma pausas activas",
+  
+  "nutrition.fiber_intake.title": "Come suficiente fibra",
+  "nutrition.vegetables_daily.title": "Come verduras todos los días",
+  "nutrition.healthy_fats.title": "Incluye grasas saludables",
+  "nutrition.omega3_fish.title": "Come pescado rico en omega-3",
+  "nutrition.water_intake.title": "Toma suficiente agua",
+  "nutrition.mediterranean_pattern.title": "Sigue un patrón mediterráneo",
+  "nutrition.protein_breakfast.title": "Desayuna con proteína",
+  "nutrition.limit_refined_carbs.title": "Limita carbohidratos refinados",
+  "nutrition.portion_control.title": "Controla las porciones",
+  
+  "elimination.no_sugary_drinks.title": "Elimina bebidas azucaradas",
+  "elimination.no_alcohol.title": "Reduce o elimina el alcohol",
+  "elimination.no_ultra_processed.title": "Evita alimentos ultraprocesados",
+  "elimination.reduce_saturated_fat.title": "Reduce grasas saturadas",
+  "elimination.limit_sodium.title": "Limita el sodio",
+  "elimination.avoid_purines.title": "Evita alimentos altos en purinas",
+  
+  "recovery.sleep_7h.title": "Duerme al menos 7 horas",
+  "recovery.consistent_schedule.title": "Mantén un horario de sueño consistente",
+  "recovery.stress_management.title": "Practica manejo del estrés",
+  "recovery.rest_days.title": "Toma días de descanso",
+  "recovery.hydration_post_exercise.title": "Hidrátate después del ejercicio"
+}

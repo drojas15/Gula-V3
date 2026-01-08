@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * VARIABLES DE COLOR - GULA MVP
+ * 
+ * Colores definidos para el homepage y la aplicación
+ */
+:root {
+  /* Primary - Verde Gula */
+  --color-primary: #10b981; /* green-500 de Tailwind */
+  --color-primary-hover: #059669; /* green-600 de Tailwind */
+  --color-primary-soft: #d1fae5; /* green-100 de Tailwind */
+  
+  /* Background */
+  --color-background: #fafaf9; /* stone-50 - blanco cálido */
+  
+  /* Text */
+  --color-text-main: #1c1917; /* stone-900 - negro suave */
+  --color-text-secondary: #57534e; /* stone-600 */
+}
+
+/* Aplicar variables globales */
+body {
+  background-color: var(--color-background);
+  color: var(--color-text-main);
+}
+
+/* Clases de utilidad personalizadas */
+.bg-background {
+  background-color: var(--color-background);
+}
+
+.bg-primary {
+  background-color: var(--color-primary);
+}
+
+.bg-primary-hover:hover {
+  background-color: var(--color-primary-hover);
+}
+
+.bg-primary-soft {
+  background-color: var(--color-primary-soft);
+}
+
+.text-primary {
+  color: var(--color-primary);
+}
+
+.text-text-main {
+  color: var(--color-text-main);
+}
+
+.text-text-secondary {
+  color: var(--color-text-secondary);
+}
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+}
+

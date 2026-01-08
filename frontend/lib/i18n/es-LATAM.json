@@ -1,0 +1,335 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "back": "Volver"
+  },
+  "healthScore": {
+    "title": "Puntuación de Salud",
+    "description": "Tu puntuación general de salud basada en tus biomarcadores",
+    "excellent": "Excelente",
+    "good": "Bueno",
+    "fair": "Regular",
+    "poor": "Bajo"
+  },
+  "biomarkers": {
+    "title": "Biomarcadores",
+    "status": {
+      "optimal": "Óptimo",
+      "good": "Bueno",
+      "out_of_range": "Fuera de Rango",
+      "critical": "Crítico"
+    },
+    "trafficLight": {
+      "green": "Verde",
+      "yellow": "Amarillo",
+      "orange": "Naranja",
+      "red": "Rojo"
+    }
+  },
+  "priorities": {
+    "title": "Tus Prioridades",
+    "subtitle": "Enfócate en estas 3 áreas esta semana",
+    "high": "Alta",
+    "medium": "Media",
+    "low": "Baja"
+  },
+  "recommendations": {
+    "title": "Recomendaciones",
+    "subtitle": "Acciones específicas para mejorar este biomarcador"
+  },
+  "ldl": {
+    "optimal": {
+      "risk": "Tu colesterol LDL está en rango óptimo. ¡Sigue así!",
+      "maintain_diet": "Mantén una dieta baja en grasas saturadas",
+      "keep_exercise": "Continúa con ejercicio regular"
+    },
+    "good": {
+      "risk": "Tu colesterol LDL está en buen rango, pero hay margen de mejora.",
+      "reduce_saturated_fat": "Reduce grasas saturadas (carnes rojas, quesos)",
+      "increase_fiber": "Aumenta fibra (avena, legumbres, frutas)"
+    },
+    "out_of_range": {
+      "risk": "Tu colesterol LDL está elevado. Aumenta riesgo cardiovascular.",
+      "reduce_saturated_fat": "Reduce grasas saturadas (carnes rojas, quesos)",
+      "increase_fiber": "Aumenta fibra (avena, legumbres, frutas)",
+      "add_cardio": "Agrega 30 min de cardio 5x semana"
+    },
+    "critical": {
+      "risk": "Tu colesterol LDL está críticamente elevado. Consulta con tu médico urgentemente.",
+      "urgent_medical_consult": "Consulta médica urgente recomendada",
+      "eliminate_trans_fats": "Elimina grasas trans completamente",
+      "daily_cardio": "Ejercicio cardiovascular diario (30-45 min)"
+    },
+    "priority": {
+      "high": "Reducir colesterol LDL es tu prioridad #1",
+      "medium": "Mantener colesterol LDL bajo control",
+      "low": "Tu colesterol LDL está bien, continúa así"
+    }
+  },
+  "hbaic": {
+    "optimal": {
+      "risk": "Tu hemoglobina glicosilada está en rango óptimo. ¡Excelente!",
+      "maintain_diet": "Mantén una dieta balanceada",
+      "keep_exercise": "Continúa con ejercicio regular"
+    },
+    "good": {
+      "risk": "Tu hemoglobina glicosilada está en buen rango.",
+      "reduce_sugar": "Reduce consumo de azúcares refinados",
+      "increase_fiber": "Aumenta fibra en tu dieta"
+    },
+    "out_of_range": {
+      "risk": "Tu hemoglobina glicosilada está elevada. Indica posible prediabetes.",
+      "reduce_sugar": "Reduce consumo de azúcares refinados",
+      "increase_fiber": "Aumenta fibra en tu dieta",
+      "add_cardio": "Agrega ejercicio cardiovascular regular"
+    },
+    "critical": {
+      "risk": "Tu hemoglobina glicosilada está críticamente elevada. Consulta con tu médico urgentemente.",
+      "urgent_medical_consult": "Consulta médica urgente recomendada",
+      "eliminate_refined_sugar": "Elimina azúcares refinados completamente",
+      "daily_cardio": "Ejercicio cardiovascular diario (30-45 min)"
+    },
+    "priority": {
+      "high": "Controlar hemoglobina glicosilada es tu prioridad #1",
+      "medium": "Mantener hemoglobina glicosilada bajo control",
+      "low": "Tu hemoglobina glicosilada está bien, continúa así"
+    }
+  },
+  "glucose": {
+    "optimal": {
+      "risk": "Tu glucosa en ayunas está en rango óptimo.",
+      "maintain_diet": "Mantén una dieta balanceada",
+      "keep_exercise": "Continúa con ejercicio regular"
+    },
+    "good": {
+      "risk": "Tu glucosa en ayunas está en buen rango.",
+      "reduce_sugar": "Reduce consumo de azúcares refinados",
+      "increase_fiber": "Aumenta fibra en tu dieta"
+    },
+    "out_of_range": {
+      "risk": "Tu glucosa en ayunas está elevada. Indica posible prediabetes.",
+      "reduce_sugar": "Reduce consumo de azúcares refinados",
+      "increase_fiber": "Aumenta fibra en tu dieta",
+      "add_cardio": "Agrega ejercicio cardiovascular regular"
+    },
+    "critical": {
+      "risk": "Tu glucosa en ayunas está críticamente elevada. Consulta con tu médico urgentemente.",
+      "urgent_medical_consult": "Consulta médica urgente recomendada",
+      "eliminate_refined_sugar": "Elimina azúcares refinados completamente",
+      "daily_cardio": "Ejercicio cardiovascular diario (30-45 min)"
+    },
+    "priority": {
+      "high": "Controlar glucosa es tu prioridad #1",
+      "medium": "Mantener glucosa bajo control",
+      "low": "Tu glucosa está bien, continúa así"
+    }
+  },
+  "triglycerides": {
+    "optimal": {
+      "risk": "Tus triglicéridos están en rango óptimo.",
+      "maintain_diet": "Mantén una dieta balanceada",
+      "keep_exercise": "Continúa con ejercicio regular"
+    },
+    "good": {
+      "risk": "Tus triglicéridos están en buen rango.",
+      "reduce_sugar": "Reduce consumo de azúcares refinados",
+      "increase_fiber": "Aumenta fibra en tu dieta"
+    },
+    "out_of_range": {
+      "risk": "Tus triglicéridos están elevados.",
+      "reduce_sugar": "Reduce consumo de azúcares refinados",
+      "increase_fiber": "Aumenta fibra en tu dieta",
+      "add_cardio": "Agrega ejercicio cardiovascular regular"
+    },
+    "critical": {
+      "risk": "Tus triglicéridos están críticamente elevados. Consulta con tu médico urgentemente.",
+      "urgent_medical_consult": "Consulta médica urgente recomendada",
+      "eliminate_refined_sugar": "Elimina azúcares refinados completamente",
+      "daily_cardio": "Ejercicio cardiovascular diario (30-45 min)"
+    },
+    "priority": {
+      "high": "Reducir triglicéridos es tu prioridad #1",
+      "medium": "Mantener triglicéridos bajo control",
+      "low": "Tus triglicéridos están bien, continúa así"
+    }
+  },
+  "alt": {
+    "optimal": {
+      "risk": "Tu ALT está en rango óptimo.",
+      "maintain_diet": "Mantén una dieta balanceada",
+      "keep_exercise": "Continúa con ejercicio regular"
+    },
+    "good": {
+      "risk": "Tu ALT está en buen rango.",
+      "reduce_alcohol": "Reduce consumo de alcohol",
+      "increase_water": "Aumenta consumo de agua"
+    },
+    "out_of_range": {
+      "risk": "Tu ALT está elevada. Puede indicar problemas hepáticos.",
+      "reduce_alcohol": "Reduce consumo de alcohol",
+      "increase_water": "Aumenta consumo de agua",
+      "add_cardio": "Agrega ejercicio cardiovascular regular"
+    },
+    "critical": {
+      "risk": "Tu ALT está críticamente elevada. Consulta con tu médico urgentemente.",
+      "urgent_medical_consult": "Consulta médica urgente recomendada",
+      "eliminate_alcohol": "Elimina alcohol completamente",
+      "daily_cardio": "Ejercicio cardiovascular diario (30-45 min)"
+    },
+    "priority": {
+      "high": "Controlar ALT es tu prioridad #1",
+      "medium": "Mantener ALT bajo control",
+      "low": "Tu ALT está bien, continúa así"
+    }
+  },
+  "crp": {
+    "optimal": {
+      "risk": "Tu PCR ultrasensible está en rango óptimo.",
+      "maintain_diet": "Mantén una dieta balanceada",
+      "keep_exercise": "Continúa con ejercicio regular"
+    },
+    "good": {
+      "risk": "Tu PCR ultrasensible está en buen rango.",
+      "reduce_inflammation": "Reduce alimentos inflamatorios",
+      "increase_omega3": "Aumenta consumo de omega-3"
+    },
+    "out_of_range": {
+      "risk": "Tu PCR ultrasensible está elevada. Indica inflamación sistémica.",
+      "reduce_inflammation": "Reduce alimentos inflamatorios",
+      "increase_omega3": "Aumenta consumo de omega-3",
+      "add_cardio": "Agrega ejercicio cardiovascular regular"
+    },
+    "critical": {
+      "risk": "Tu PCR ultrasensible está críticamente elevada. Consulta con tu médico urgentemente.",
+      "urgent_medical_consult": "Consulta médica urgente recomendada",
+      "eliminate_processed_foods": "Elimina alimentos procesados completamente",
+      "daily_cardio": "Ejercicio cardiovascular diario (30-45 min)"
+    },
+    "priority": {
+      "high": "Reducir inflamación es tu prioridad #1",
+      "medium": "Mantener inflamación bajo control",
+      "low": "Tu inflamación está bien, continúa así"
+    }
+  },
+  "hdl": {
+    "optimal": {
+      "risk": "Tu colesterol HDL está en rango óptimo. ¡Excelente!",
+      "maintain_diet": "Mantén una dieta balanceada",
+      "keep_exercise": "Continúa con ejercicio regular"
+    },
+    "good": {
+      "risk": "Tu colesterol HDL está en buen rango.",
+      "increase_healthy_fats": "Aumenta grasas saludables (aguacate, pescado)",
+      "add_cardio": "Agrega ejercicio cardiovascular"
+    },
+    "out_of_range": {
+      "risk": "Tu colesterol HDL está bajo. Aumenta riesgo cardiovascular.",
+      "increase_healthy_fats": "Aumenta grasas saludables (aguacate, pescado)",
+      "add_cardio": "Agrega ejercicio cardiovascular regular",
+      "reduce_sugar": "Reduce consumo de azúcares"
+    },
+    "critical": {
+      "risk": "Tu colesterol HDL está críticamente bajo. Consulta con tu médico urgentemente.",
+      "urgent_medical_consult": "Consulta médica urgente recomendada",
+      "increase_healthy_fats": "Aumenta grasas saludables significativamente",
+      "daily_cardio": "Ejercicio cardiovascular diario (30-45 min)"
+    },
+    "priority": {
+      "high": "Aumentar colesterol HDL es tu prioridad #1",
+      "medium": "Mantener colesterol HDL en buen nivel",
+      "low": "Tu colesterol HDL está bien, continúa así"
+    }
+  },
+  "ast": {
+    "optimal": {
+      "risk": "Tu AST está en rango óptimo.",
+      "maintain_diet": "Mantén una dieta balanceada",
+      "keep_exercise": "Continúa con ejercicio regular"
+    },
+    "good": {
+      "risk": "Tu AST está en buen rango.",
+      "reduce_alcohol": "Reduce consumo de alcohol",
+      "increase_water": "Aumenta consumo de agua"
+    },
+    "out_of_range": {
+      "risk": "Tu AST está elevada. Puede indicar problemas hepáticos.",
+      "reduce_alcohol": "Reduce consumo de alcohol",
+      "increase_water": "Aumenta consumo de agua",
+      "add_cardio": "Agrega ejercicio cardiovascular regular"
+    },
+    "critical": {
+      "risk": "Tu AST está críticamente elevada. Consulta con tu médico urgentemente.",
+      "urgent_medical_consult": "Consulta médica urgente recomendada",
+      "eliminate_alcohol": "Elimina alcohol completamente",
+      "daily_cardio": "Ejercicio cardiovascular diario (30-45 min)"
+    },
+    "priority": {
+      "high": "Controlar AST es tu prioridad #1",
+      "medium": "Mantener AST bajo control",
+      "low": "Tu AST está bien, continúa así"
+    }
+  },
+  "egfr": {
+    "optimal": {
+      "risk": "Tu función renal está en rango óptimo.",
+      "maintain_diet": "Mantén una dieta balanceada",
+      "keep_exercise": "Continúa con ejercicio regular"
+    },
+    "good": {
+      "risk": "Tu función renal está en buen rango.",
+      "increase_water": "Aumenta consumo de agua",
+      "reduce_sodium": "Reduce consumo de sodio"
+    },
+    "out_of_range": {
+      "risk": "Tu función renal está disminuida. Consulta con tu médico.",
+      "increase_water": "Aumenta consumo de agua significativamente",
+      "reduce_sodium": "Reduce consumo de sodio",
+      "add_cardio": "Agrega ejercicio cardiovascular regular"
+    },
+    "critical": {
+      "risk": "Tu función renal está críticamente disminuida. Consulta con tu médico urgentemente.",
+      "urgent_medical_consult": "Consulta médica urgente recomendada",
+      "increase_water": "Aumenta consumo de agua significativamente",
+      "reduce_sodium": "Reduce consumo de sodio al mínimo"
+    },
+    "priority": {
+      "high": "Mejorar función renal es tu prioridad #1",
+      "medium": "Mantener función renal en buen nivel",
+      "low": "Tu función renal está bien, continúa así"
+    }
+  },
+  "uric_acid": {
+    "optimal": {
+      "risk": "Tu ácido úrico está en rango óptimo.",
+      "maintain_diet": "Mantén una dieta balanceada",
+      "keep_exercise": "Continúa con ejercicio regular"
+    },
+    "good": {
+      "risk": "Tu ácido úrico está en buen rango.",
+      "reduce_purines": "Reduce alimentos ricos en purinas",
+      "increase_water": "Aumenta consumo de agua"
+    },
+    "out_of_range": {
+      "risk": "Tu ácido úrico está elevado. Puede causar gota.",
+      "reduce_purines": "Reduce alimentos ricos en purinas (carnes rojas, mariscos)",
+      "increase_water": "Aumenta consumo de agua",
+      "add_cardio": "Agrega ejercicio cardiovascular regular"
+    },
+    "critical": {
+      "risk": "Tu ácido úrico está críticamente elevado. Consulta con tu médico urgentemente.",
+      "urgent_medical_consult": "Consulta médica urgente recomendada",
+      "eliminate_purines": "Elimina alimentos ricos en purinas completamente",
+      "increase_water": "Aumenta consumo de agua significativamente"
+    },
+    "priority": {
+      "high": "Reducir ácido úrico es tu prioridad #1",
+      "medium": "Mantener ácido úrico bajo control",
+      "low": "Tu ácido úrico está bien, continúa así"
+    }
+  }
+}
+
