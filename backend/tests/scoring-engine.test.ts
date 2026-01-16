@@ -11,7 +11,7 @@ import {
   calculateHealthScoreWithAnalysis,
   BiomarkerValue
 } from '../src/services/scoring-engine.service';
-import { BiomarkerKey } from '../src/config/biomarkers.config';
+import { BIOMARKERS } from '../src/config/biomarkers.config';
 
 describe('Scoring Engine', () => {
   describe('determineStatus', () => {
@@ -31,7 +31,7 @@ describe('Scoring Engine', () => {
     });
 
     it('should return CRITICAL for LDL above critical threshold', () => {
-      const status = determineStatus('LDL', 180);
+      const status = determineStatus('LDL', 200); // CRITICAL >= 190
       expect(status).toBe('CRITICAL');
     });
 
@@ -41,7 +41,7 @@ describe('Scoring Engine', () => {
     });
 
     it('should return CRITICAL for HDL below critical threshold', () => {
-      const status = determineStatus('HDL', 35);
+      const status = determineStatus('HDL', 25); // CRITICAL <= 29
       expect(status).toBe('CRITICAL');
     });
 
@@ -70,25 +70,28 @@ describe('Scoring Engine', () => {
 
     it('should calculate score of 0 for all critical biomarkers', () => {
       const biomarkers: BiomarkerValue[] = [
-        { biomarker: 'LDL', value: 200, unit: 'mg/dL' },
-        { biomarker: 'HDL', value: 30, unit: 'mg/dL' },
-        { biomarker: 'FASTING_GLUCOSE', value: 150, unit: 'mg/dL' }
+        { biomarker: 'LDL', value: 200, unit: 'mg/dL' },      // CRITICAL
+        { biomarker: 'HDL', value: 25, unit: 'mg/dL' },       // CRITICAL
+        { biomarker: 'FASTING_GLUCOSE', value: 150, unit: 'mg/dL' } // CRITICAL
       ];
 
       const score = calculateHealthScore(biomarkers);
-      expect(score).toBe(0);
+      // All CRITICAL = multiplier 0.1 for each
+      // LDL: 1.5 * 0.1 = 0.15, HDL: 1.2 * 0.1 = 0.12, GLUCOSE: 1.5 * 0.1 = 0.15
+      // Total: 0.42 / 4.2 * 100 = 10
+      expect(score).toBe(10);
     });
 
     it('should calculate weighted score correctly', () => {
-      // LDL (weight 18) = OPTIMAL (1.0), HDL (weight 8) = CRITICAL (0.0)
-      // Score = (18 * 1.0 + 8 * 0.0) / (18 + 8) * 100 = 18/26 * 100 = 69
+      // LDL (weight 1.5) = OPTIMAL (1.0), HDL (weight 1.2) = CRITICAL (0.1)
+      // Score = (1.5 * 1.0 + 1.2 * 0.1) / (1.5 + 1.2) * 100 = 1.62/2.7 * 100 = 60
       const biomarkers: BiomarkerValue[] = [
         { biomarker: 'LDL', value: 90, unit: 'mg/dL' },
-        { biomarker: 'HDL', value: 35, unit: 'mg/dL' }
+        { biomarker: 'HDL', value: 25, unit: 'mg/dL' }
       ];
 
       const score = calculateHealthScore(biomarkers);
-      expect(score).toBe(69);
+      expect(score).toBe(60);
     });
   });
 
@@ -101,14 +104,15 @@ describe('Scoring Engine', () => {
       };
 
       const analyzed = analyzeBiomarker(biomarkerValue);
+      const ldlWeight = BIOMARKERS['LDL'].weight; // 1.5
 
       expect(analyzed.biomarker).toBe('LDL');
       expect(analyzed.value).toBe(150);
       expect(analyzed.unit).toBe('mg/dL');
       expect(analyzed.status).toBe('OUT_OF_RANGE');
       expect(analyzed.trafficLight).toBe('ORANGE');
-      expect(analyzed.weight).toBe(18);
-      expect(analyzed.contribution).toBe(18 * 0.4); // weight * multiplier
+      expect(analyzed.weight).toBe(ldlWeight);
+      expect(analyzed.contribution).toBe(ldlWeight * 0.4); // weight * multiplier
       expect(analyzed.riskKey).toBe('ldl.out_of_range.risk');
       expect(analyzed.recommendationKeys.length).toBeGreaterThan(0);
     });

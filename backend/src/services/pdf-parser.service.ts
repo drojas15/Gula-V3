@@ -8,6 +8,7 @@
 import pdfParse from 'pdf-parse';
 import { extractBiomarkers, normalizeUnits } from './biomarker-analyzer.service';
 import { BiomarkerValue } from './scoring-engine.service';
+import { parseFullText, convertToLegacyFormat } from './robust-biomarker-parser.service';
 
 export interface ParseResult {
   success: boolean;
@@ -76,8 +77,10 @@ export async function parsePDF(pdfBuffer: Buffer): Promise<ParseResult> {
     // Attempt to extract exam date from PDF text
     const examDate = extractExamDateFromText(text);
 
-    // Extract biomarkers from text
-    const biomarkers = extractBiomarkers(text);
+    // Extract biomarkers from text using ROBUST parser
+    console.log('[PDF Parser] Using ROBUST biomarker parser');
+    const parsedBiomarkers = parseFullText(text);
+    const biomarkers = convertToLegacyFormat(parsedBiomarkers);
     const normalizedBiomarkers = normalizeUnits(biomarkers);
 
     if (normalizedBiomarkers.length === 0) {
