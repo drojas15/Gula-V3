@@ -212,7 +212,8 @@ export async function updateWeeklyActionProgress(
 
     // Update progress (mandatory query C)
     // Backend automatically determines completion_state
-    const updatedAction = await updateProgressInDB(weeklyActionId, progressValue);
+    // CRITICAL: Pass userId to validate ownership
+    const updatedAction = await updateProgressInDB(weeklyActionId, progressValue, req.userId);
 
     res.json({
       id: updatedAction.id,
@@ -237,15 +238,27 @@ export async function getCurrentWeekActions(req: AuthRequest, res: Response): Pr
       return;
     }
 
-    // TODO: Get current week's actions from database
-    // SELECT * FROM weekly_action_instances
-    // WHERE user_id = $1
-    //   AND week_start_date <= CURRENT_DATE
-    //   AND week_end_date >= CURRENT_DATE
+    // Import db
+    const { db } = await import('../db/sqlite');
+    
+    const currentDate = new Date().toISOString().split('T')[0];
+
+    // CRITICAL: Filter by user_id to ensure data isolation
+    const actions = db.prepare(`
+      SELECT * FROM weekly_action_instances
+      WHERE user_id = ?
+        AND week_start <= ?
+        AND week_end >= ?
+    `).all(req.userId, currentDate, currentDate) as any[];
+
+    // Parse JSON fields
+    const parsedActions = actions.map(action => ({
+      ...action,
+      impacted_biomarkers: JSON.parse(action.impacted_biomarkers)
+    }));
 
     res.json({
-      actions: [],
-      message: 'Current week actions endpoint - to be implemented with database'
+      actions: parsedActions
     });
   } catch (error: any) {
     console.error('Error getting current week actions:', error);

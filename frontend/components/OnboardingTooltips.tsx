@@ -198,13 +198,17 @@ export default function OnboardingTooltips({ onComplete, onSkip }: OnboardingToo
 
 /**
  * Hook para controlar el estado del onboarding
+ * CRITICAL: Indexed by userId to prevent onboarding state leakage between users
  */
-export function useOnboarding() {
+export function useOnboarding(userId: string | null) {
   const [shouldShowOnboarding, setShouldShowOnboarding] = useState(false);
 
   useEffect(() => {
-    // Verificar si ya vio el onboarding
-    const hasSeenOnboarding = localStorage.getItem('gula_onboarding_completed');
+    if (!userId) return;
+
+    // CRITICAL: Index onboarding state by user_id
+    const onboardingKey = `gula_onboarding_completed_${userId}`;
+    const hasSeenOnboarding = localStorage.getItem(onboardingKey);
     
     if (!hasSeenOnboarding) {
       // Esperar un momento antes de mostrar (mejor UX)
@@ -212,15 +216,21 @@ export function useOnboarding() {
         setShouldShowOnboarding(true);
       }, 500);
     }
-  }, []);
+  }, [userId]);
 
   const completeOnboarding = () => {
-    localStorage.setItem('gula_onboarding_completed', 'true');
+    if (!userId) return;
+    
+    const onboardingKey = `gula_onboarding_completed_${userId}`;
+    localStorage.setItem(onboardingKey, 'true');
     setShouldShowOnboarding(false);
   };
 
   const skipOnboarding = () => {
-    localStorage.setItem('gula_onboarding_completed', 'true');
+    if (!userId) return;
+    
+    const onboardingKey = `gula_onboarding_completed_${userId}`;
+    localStorage.setItem(onboardingKey, 'true');
     setShouldShowOnboarding(false);
   };
 

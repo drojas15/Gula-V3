@@ -8,6 +8,8 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
+import { db } from '../db/sqlite';
+import { randomUUID } from 'crypto';
 
 const router = Router();
 
@@ -37,16 +39,37 @@ router.post('/signup', async (req: Request, res: Response) => {
     
     const data = signupSchema.parse(req.body);
 
-    // TODO: Check if user exists in database
-    // TODO: Hash password with bcrypt
-    // TODO: Create user in database
-    // TODO: Generate JWT token
+    // Check if user already exists
+    const existingUser = db.prepare('SELECT id FROM users WHERE email = ?').get(data.email);
+    if (existingUser) {
+      res.status(400).json({ error: 'El email ya está registrado' });
+      return;
+    }
 
+    // Hash password
     const hashedPassword = await bcrypt.hash(data.password, 10);
     
-    // Mock user creation (replace with actual database call)
-    const userId = `user_${Date.now()}`;
+    // Create user in database
+    const userId = randomUUID();
+    const now = new Date().toISOString();
     
+    db.prepare(`
+      INSERT INTO users (id, email, name, password_hash, age, sex, weight, goals, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      userId,
+      data.email,
+      data.name,
+      hashedPassword,
+      data.age,
+      data.sex,
+      data.weight || null,
+      data.goals || null,
+      now,
+      now
+    );
+    
+    // Generate JWT token
     const token = jwt.sign(
       { userId },
       process.env.JWT_SECRET || 'secret',
@@ -90,32 +113,52 @@ router.post('/login', async (req: Request, res: Response) => {
   try {
     const data = loginSchema.parse(req.body);
 
-    // TODO: Find user in database
-    // TODO: Verify password
-    // TODO: Generate JWT token
+    // Find user in database
+    const user = db.prepare(`
+      SELECT id, email, name, password_hash, age, sex 
+      FROM users 
+      WHERE email = ?
+    `).get(data.email) as any;
 
-    // Mock authentication (replace with actual database call)
-    const userId = `user_123`;
-    
+    if (!user) {
+      res.status(401).json({ error: 'Email o contraseña incorrectos' });
+      return;
+    }
+
+    // Verify password
+    const validPassword = await bcrypt.compare(data.password, user.password_hash);
+    if (!validPassword) {
+      res.status(401).json({ error: 'Email o contraseña incorrectos' });
+      return;
+    }
+
+    // Generate JWT token
     const token = jwt.sign(
-      { userId },
+      { userId: user.id },
       process.env.JWT_SECRET || 'secret',
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
 
+    console.log('[Auth] User logged in successfully:', user.id);
+
     res.json({
       token,
       user: {
-        id: userId,
-        email: data.email
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        age: user.age,
+        sex: user.sex
       }
     });
   } catch (error: any) {
+    console.error('[Auth] Login error:', error);
+    
     if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'Invalid input', details: error.errors });
+      res.status(400).json({ error: 'Datos inválidos', details: error.errors });
       return;
     }
-    res.status(401).json({ error: 'Invalid credentials' });
+    res.status(401).json({ error: 'Email o contraseña incorrectos' });
   }
 });
 

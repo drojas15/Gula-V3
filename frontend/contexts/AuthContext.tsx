@@ -102,8 +102,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
+    // Store userId before clearing state (needed for cleanup)
+    const currentUserId = user?.id;
+    
     authAPI.logout();
     setUser(null);
+    
+    // CRITICAL: Clear sessionStorage to prevent data leakage between users
+    // Remove all exam data cached in sessionStorage
+    if (typeof window !== 'undefined') {
+      // Clear sessionStorage exam data
+      Object.keys(sessionStorage).forEach(key => {
+        if (key.startsWith('exam_')) {
+          sessionStorage.removeItem(key);
+        }
+      });
+      
+      // Clear user-specific onboarding state from localStorage
+      if (currentUserId) {
+        localStorage.removeItem(`gula_onboarding_completed_${currentUserId}`);
+      }
+      
+      // Also clear old onboarding key (for backwards compatibility)
+      localStorage.removeItem('gula_onboarding_completed');
+    }
+    
     router.push('/login');
   };
 

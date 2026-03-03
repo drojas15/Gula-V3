@@ -254,19 +254,35 @@ router.get('/:examId', authenticateToken, async (req: AuthRequest, res: Response
 
     const { examId } = req.params;
 
-    // TODO: Fetch exam from database
-    // TODO: Verify exam belongs to user
-    // TODO: Fetch biomarker values
-    // TODO: Fetch score
-    
-    // For now, return mock data structure that matches ExamResult interface
-    // This should be replaced with actual database query
+    // CRITICAL: Fetch exam and verify it belongs to user (authorization check)
+    const exam = db.prepare(`
+      SELECT * FROM exams 
+      WHERE examId = ? AND userId = ?
+    `).get(examId, req.userId) as any;
+
+    if (!exam) {
+      res.status(404).json({ error: 'Exam not found or unauthorized' });
+      return;
+    }
+
+    // Parse biomarkers JSON
+    const biomarkers = JSON.parse(exam.biomarkers);
+
+    // Fetch biomarker history for this exam
+    const biomarkerHistory = db.prepare(`
+      SELECT biomarker_code, value, status_at_time, unit
+      FROM biomarker_result
+      WHERE user_id = ? AND exam_id = ?
+    `).all(req.userId, examId);
+
     res.status(200).json({
-      examId,
-      userId: req.userId,
-      healthScore: 0,
-      biomarkers: [],
-      priorities: []
+      examId: exam.examId,
+      userId: exam.userId,
+      examDate: exam.examDate,
+      healthScore: exam.healthScore,
+      biomarkers: biomarkers,
+      biomarkerHistory: biomarkerHistory,
+      createdAt: exam.createdAt
     });
   } catch (error: any) {
     console.error('[Exam] Error retrieving exam:', error);

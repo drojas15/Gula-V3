@@ -31,8 +31,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Onboarding
-  const { shouldShowOnboarding, completeOnboarding, skipOnboarding } = useOnboarding();
+  // Onboarding - CRITICAL: Pass userId to prevent state leakage between users
+  const { shouldShowOnboarding, completeOnboarding, skipOnboarding } = useOnboarding(user?.id || null);
 
   // CRITICAL: Always fetch fresh data from backend (source of truth)
   // This function is called on mount and when explicitly requested

@@ -10,35 +10,62 @@ import { WeeklyActionInstance, CreateWeeklyActionInput, UpdateProgressInput } fr
 /**
  * A. Guardar acciones semanales
  * INSERT INTO weekly_actions (...)
+ * CRITICAL: Always requires user_id from CreateWeeklyActionInput
  */
 export async function saveWeeklyActions(
   actions: CreateWeeklyActionInput[]
 ): Promise<WeeklyActionInstance[]> {
-  // TODO: Implement database INSERT
-  // INSERT INTO weekly_actions (
-  //   id, user_id, action_id, category, weekly_target, success_metric,
-  //   impacted_biomarkers, difficulty, progress, completion_state,
-  //   week_start, week_end, created_at
-  // ) VALUES
-  // (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, 0, 'PENDING', $8, $9, NOW())
-  // RETURNING *;
+  const { db } = await import('../db/sqlite');
+  const { randomUUID } = await import('crypto');
 
-  // Mock implementation for now
-  return actions.map((action, index) => ({
-    id: `wa_${Date.now()}_${index}`,
-    user_id: action.user_id,
-    action_id: action.action_id,
-    category: action.category,
-    weekly_target: action.weekly_target,
-    success_metric: action.success_metric,
-    impacted_biomarkers: action.impacted_biomarkers,
-    difficulty: action.difficulty,
-    progress: 0,
-    completion_state: 'PENDING',
-    week_start: action.week_start,
-    week_end: action.week_end,
-    created_at: new Date()
-  }));
+  const insertStmt = db.prepare(`
+    INSERT INTO weekly_action_instances (
+      id, user_id, action_id, category, weekly_target, success_metric,
+      impacted_biomarkers, difficulty, progress, completion_state,
+      week_start, week_end, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const savedActions: WeeklyActionInstance[] = [];
+
+  for (const action of actions) {
+    const id = randomUUID();
+    const now = new Date().toISOString();
+
+    insertStmt.run(
+      id,
+      action.user_id, // CRITICAL: user_id from input
+      action.action_id,
+      action.category,
+      action.weekly_target,
+      action.success_metric,
+      JSON.stringify(action.impacted_biomarkers),
+      action.difficulty,
+      0, // initial progress
+      'PENDING', // initial completion_state
+      action.week_start.toISOString().split('T')[0],
+      action.week_end.toISOString().split('T')[0],
+      now
+    );
+
+    savedActions.push({
+      id,
+      user_id: action.user_id,
+      action_id: action.action_id,
+      category: action.category,
+      weekly_target: action.weekly_target,
+      success_metric: action.success_metric,
+      impacted_biomarkers: action.impacted_biomarkers,
+      difficulty: action.difficulty,
+      progress: 0,
+      completion_state: 'PENDING',
+      week_start: action.week_start,
+      week_end: action.week_end,
+      created_at: new Date(now)
+    });
+  }
+
+  return savedActions;
 }
 
 /**
@@ -50,40 +77,47 @@ export async function saveWeeklyActions(
  * AND created_at >= NOW() - INTERVAL '14 days';
  * 
  * This protects against repetition (key feature).
+ * CRITICAL: Always filters by user_id
  */
 export async function getCompletedActionsInLast14Days(
   userId: string
 ): Promise<string[]> {
-  // TODO: Implement database query
-  // SELECT action_id
-  // FROM weekly_actions
-  // WHERE user_id = $1
-  //   AND completion_state = 'COMPLETED'
-  //   AND created_at >= NOW() - INTERVAL '14 days';
+  const { db } = await import('../db/sqlite');
 
-  // Mock implementation for now
-  return [];
+  // Calculate date 14 days ago
+  const fourteenDaysAgo = new Date();
+  fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+  const cutoffDate = fourteenDaysAgo.toISOString();
+
+  // CRITICAL: Filter by user_id to ensure data isolation
+  const results = db.prepare(`
+    SELECT action_id
+    FROM weekly_action_instances
+    WHERE user_id = ?
+      AND completion_state = 'COMPLETED'
+      AND created_at >= ?
+  `).all(userId, cutoffDate) as Array<{ action_id: string }>;
+
+  return results.map(row => row.action_id);
 }
 
 /**
  * C. Update de progreso
  * UPDATE weekly_actions
  * SET progress = ?, completion_state = ?
- * WHERE id = ?;
+ * WHERE id = ? AND user_id = ?;
  * 
  * Frontend only sends numbers.
  * Backend decides state.
+ * 
+ * CRITICAL: Validates that action belongs to user (authorization check)
  */
 export async function updateWeeklyActionProgress(
   weeklyActionId: string,
-  progress: number
+  progress: number,
+  userId: string
 ): Promise<WeeklyActionInstance> {
-  // TODO: Implement database UPDATE
-  // Determine completion_state based on progress
-  // UPDATE weekly_actions
-  // SET progress = $1, completion_state = $2
-  // WHERE id = $3
-  // RETURNING *;
+  const { db } = await import('../db/sqlite');
 
   // Determine state based on progress
   let completion_state: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
@@ -95,21 +129,51 @@ export async function updateWeeklyActionProgress(
     completion_state = 'PENDING';
   }
 
-  // Mock implementation for now
-  return {
-    id: weeklyActionId,
-    user_id: '',
-    action_id: '',
-    category: '',
-    weekly_target: '',
-    success_metric: '',
-    impacted_biomarkers: [],
-    difficulty: '',
-    progress: Math.max(0, Math.min(100, progress)),
+  // AUTHORIZATION CHECK: Update only if action belongs to user
+  const updateStmt = db.prepare(`
+    UPDATE weekly_action_instances
+    SET progress = ?, completion_state = ?
+    WHERE id = ? AND user_id = ?
+  `);
+
+  const result = updateStmt.run(
+    Math.max(0, Math.min(100, progress)),
     completion_state,
-    week_start: new Date(),
-    week_end: new Date(),
-    created_at: new Date()
+    weeklyActionId,
+    userId
+  );
+
+  // If no rows were updated, action doesn't exist or doesn't belong to user
+  if (result.changes === 0) {
+    throw new Error('Action not found or unauthorized');
+  }
+
+  // Fetch updated action
+  const getStmt = db.prepare(`
+    SELECT * FROM weekly_action_instances
+    WHERE id = ? AND user_id = ?
+  `);
+
+  const action = getStmt.get(weeklyActionId, userId) as any;
+
+  if (!action) {
+    throw new Error('Action not found after update');
+  }
+
+  return {
+    id: action.id,
+    user_id: action.user_id,
+    action_id: action.action_id,
+    category: action.category,
+    weekly_target: action.weekly_target,
+    success_metric: action.success_metric,
+    impacted_biomarkers: JSON.parse(action.impacted_biomarkers),
+    difficulty: action.difficulty,
+    progress: action.progress,
+    completion_state: action.completion_state,
+    week_start: new Date(action.week_start),
+    week_end: new Date(action.week_end),
+    created_at: new Date(action.created_at)
   };
 }
 
@@ -117,20 +181,41 @@ export async function updateWeeklyActionProgress(
  * Get active weekly actions for a user (max 3)
  * 
  * Gets actions for current week (week_start <= CURRENT_DATE <= week_end)
+ * CRITICAL: Always filters by user_id
  */
 export async function getActiveWeeklyActions(
   userId: string,
   currentDate: Date
 ): Promise<WeeklyActionInstance[]> {
-  // TODO: Implement database query
-  // SELECT * FROM weekly_actions
-  // WHERE user_id = $1
-  //   AND week_start <= $2
-  //   AND week_end >= $2
-  // ORDER BY created_at
-  // LIMIT 3;
+  const { db } = await import('../db/sqlite');
 
-  return [];
+  const currentDateStr = currentDate.toISOString().split('T')[0];
+
+  // CRITICAL: Filter by user_id to ensure data isolation
+  const actions = db.prepare(`
+    SELECT * FROM weekly_action_instances
+    WHERE user_id = ?
+      AND week_start <= ?
+      AND week_end >= ?
+    ORDER BY created_at
+    LIMIT 3
+  `).all(userId, currentDateStr, currentDateStr) as any[];
+
+  return actions.map(action => ({
+    id: action.id,
+    user_id: action.user_id,
+    action_id: action.action_id,
+    category: action.category,
+    weekly_target: action.weekly_target,
+    success_metric: action.success_metric,
+    impacted_biomarkers: JSON.parse(action.impacted_biomarkers),
+    difficulty: action.difficulty,
+    progress: action.progress,
+    completion_state: action.completion_state,
+    week_start: new Date(action.week_start),
+    week_end: new Date(action.week_end),
+    created_at: new Date(action.created_at)
+  }));
 }
 
 /**
