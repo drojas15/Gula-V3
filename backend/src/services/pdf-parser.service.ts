@@ -8,14 +8,61 @@
 import pdfParse from 'pdf-parse';
 import { extractBiomarkers, normalizeUnits } from './biomarker-analyzer.service';
 import { BiomarkerValue } from './scoring-engine.service';
-import { parseFullText, convertToLegacyFormat } from './robust-biomarker-parser.service';
+import { parseFullText, convertToLegacyFormat, ParsedBiomarker } from './robust-biomarker-parser.service';
 
 export interface ParseResult {
   success: boolean;
   text?: string;
   biomarkers?: BiomarkerValue[];
+  parsedBiomarkers?: ParsedBiomarker[]; // Raw parsed results with confidence levels
   examDate?: Date | null; // Extracted exam date from PDF (if found)
   error?: string;
+}
+
+const SPANISH_MONTHS: Record<string, number> = {
+  enero: 0, febrero: 1, marzo: 2, abril: 3, mayo: 4, junio: 5,
+  julio: 6, agosto: 7, septiembre: 8, octubre: 9, noviembre: 10, diciembre: 11
+};
+
+/**
+ * Parses a date match string into a Date object using format-aware parsing.
+ * Avoids new Date(string) for LATAM formats which Node.js cannot parse.
+ */
+function parseDateFromMatch(match: string, patternIndex: number): Date | null {
+  try {
+    if (patternIndex === 0) {
+      // DD/MM/YYYY or DD-MM-YYYY
+      const sep = match.includes('/') ? '/' : '-';
+      const parts = match.split(sep);
+      if (parts.length !== 3) return null;
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10);
+      const year = parseInt(parts[2], 10);
+      if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
+      return new Date(year, month - 1, day);
+    }
+
+    if (patternIndex === 1) {
+      // YYYY-MM-DD — ISO format, safe to pass to new Date
+      return new Date(match);
+    }
+
+    if (patternIndex === 2) {
+      // DD de MMMM de YYYY (Spanish)
+      const spanishPattern = /(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})/i;
+      const m = match.match(spanishPattern);
+      if (!m) return null;
+      const day = parseInt(m[1], 10);
+      const monthName = m[2].toLowerCase();
+      const year = parseInt(m[3], 10);
+      const monthIndex = SPANISH_MONTHS[monthName];
+      if (monthIndex === undefined || isNaN(day) || isNaN(year)) return null;
+      return new Date(year, monthIndex, day);
+    }
+  } catch (e) {
+    // fall through
+  }
+  return null;
 }
 
 /**
@@ -23,33 +70,27 @@ export interface ParseResult {
  * Looks for common date patterns in LATAM lab reports
  */
 function extractExamDateFromText(text: string): Date | null {
-  // Common date patterns in LATAM lab PDFs
+  // Common date patterns in LATAM lab PDFs (order matters — index is passed to parseDateFromMatch)
   const datePatterns = [
-    // DD/MM/YYYY or DD-MM-YYYY
-    /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/g,
-    // YYYY-MM-DD
-    /(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/g,
-    // DD de MMMM de YYYY (Spanish format)
-    /(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})/gi,
+    // Pattern 0: DD/MM/YYYY or DD-MM-YYYY
+    /\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}/g,
+    // Pattern 1: YYYY-MM-DD
+    /\d{4}-\d{1,2}-\d{1,2}/g,
+    // Pattern 2: DD de MMMM de YYYY (Spanish format)
+    /\d{1,2}\s+de\s+\w+\s+de\s+\d{4}/gi,
   ];
 
-  for (const pattern of datePatterns) {
-    const matches = text.match(pattern);
+  const now = new Date();
+  const minDate = new Date(now.getFullYear() - 10, 0, 1);
+  const maxDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+  for (let i = 0; i < datePatterns.length; i++) {
+    const matches = text.match(datePatterns[i]);
     if (matches && matches.length > 0) {
-      // Try to parse the first date found
       for (const match of matches) {
-        try {
-          const date = new Date(match);
-          // Validate date is reasonable (not too old, not in future)
-          const now = new Date();
-          const minDate = new Date(now.getFullYear() - 10, 0, 1); // 10 years ago
-          const maxDate = new Date(now.getTime() + 24 * 60 * 60 * 1000); // Tomorrow (allow today)
-          
-          if (date >= minDate && date <= maxDate && !isNaN(date.getTime())) {
-            return date;
-          }
-        } catch (e) {
-          // Continue to next match
+        const date = parseDateFromMatch(match, i);
+        if (date && !isNaN(date.getTime()) && date >= minDate && date <= maxDate) {
+          return date;
         }
       }
     }
@@ -96,6 +137,7 @@ export async function parsePDF(pdfBuffer: Buffer): Promise<ParseResult> {
       success: true,
       text,
       biomarkers: normalizedBiomarkers,
+      parsedBiomarkers, // include raw results with confidence levels
       examDate: examDate || null // null if not found - frontend must request it
     };
   } catch (error: any) {
