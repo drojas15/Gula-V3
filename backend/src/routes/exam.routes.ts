@@ -8,6 +8,7 @@ import { Router, Response } from 'express';
 import multer from 'multer';
 import { authenticateToken, AuthRequest } from '../middleware/auth.middleware';
 import { parsePDF, validatePDF } from '../services/pdf-parser.service';
+import { parseFullText } from '../services/robust-biomarker-parser.service';
 import { calculateHealthScoreWithAnalysis } from '../services/scoring-engine.service';
 import { selectWeeklyActions } from '../services/weekly-actions.service';
 import { saveWeeklyActions } from '../services/weekly-actions-db.service';
@@ -84,10 +85,11 @@ router.post(
         examDate = parseResult.examDate;
       } else {
         // No date found - require user input
-        res.status(400).json({ 
+        res.status(400).json({
           error: 'Exam date is required',
           requiresExamDate: true,
-          biomarkers: parseResult.biomarkers // Return biomarkers so frontend can show form
+          biomarkers: parseResult.biomarkers, // Return biomarkers so frontend can show form
+          parsedBiomarkers: parseResult.parsedBiomarkers // Include confidence levels for preview
         });
         return;
       }
@@ -204,6 +206,12 @@ router.post(
         userId: req.userId,
         examDate: examDate.toISOString().split('T')[0], // YYYY-MM-DD format
         healthScore: analysis.totalScore,
+        parsedBiomarkers: (parseResult.parsedBiomarkers || []).map(p => ({
+          biomarker: p.biomarker,
+          value: p.value,
+          unit: p.unit,
+          confidence: p.confidence
+        })),
         biomarkers: analysis.biomarkers.map(b => ({
           biomarker: b.biomarker,
           value: b.value,

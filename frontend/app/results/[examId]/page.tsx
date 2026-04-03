@@ -68,7 +68,7 @@ export default function ResultsPage() {
         }
         
         // Get raw API response
-        const response = await examAPI.get(examId);
+        const response = await examAPI.getById(examId);
         
         // Log RAW API RESPONSE
         console.log('RAW API RESPONSE:', response);
