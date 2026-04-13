@@ -1,6 +1,6 @@
 /**
  * AUTH ROUTES
- * 
+ *
  * Handles user authentication (signup, login)
  */
 
@@ -8,7 +8,7 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
-import { db } from '../db/sqlite';
+import { query as dbQuery, queryOne, execute } from '../db/postgres';
 import { randomUUID } from 'crypto';
 
 const router = Router();
@@ -36,11 +36,14 @@ const loginSchema = z.object({
 router.post('/signup', async (req: Request, res: Response) => {
   try {
     console.log('[Auth] Signup request received:', { email: req.body.email, name: req.body.name });
-    
+
     const data = signupSchema.parse(req.body);
 
     // Check if user already exists
-    const existingUser = db.prepare('SELECT id FROM users WHERE email = ?').get(data.email);
+    const existingUser = await queryOne<{ id: string }>(
+      'SELECT id FROM users WHERE email = $1',
+      [data.email]
+    );
     if (existingUser) {
       res.status(400).json({ error: 'El email ya está registrado' });
       return;
@@ -48,27 +51,17 @@ router.post('/signup', async (req: Request, res: Response) => {
 
     // Hash password
     const hashedPassword = await bcrypt.hash(data.password, 10);
-    
+
     // Create user in database
     const userId = randomUUID();
     const now = new Date().toISOString();
-    
-    db.prepare(`
-      INSERT INTO users (id, email, name, password_hash, age, sex, weight, goals, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      userId,
-      data.email,
-      data.name,
-      hashedPassword,
-      data.age,
-      data.sex,
-      data.weight || null,
-      data.goals || null,
-      now,
-      now
+
+    await execute(
+      `INSERT INTO users (id, email, name, password_hash, age, sex, weight, goals, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      [userId, data.email, data.name, hashedPassword, data.age, data.sex, data.weight || null, data.goals || null, now, now]
     );
-    
+
     // Generate JWT token
     const token = jwt.sign(
       { userId },
@@ -90,10 +83,10 @@ router.post('/signup', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('[Auth] Signup error:', error);
-    
+
     if (error instanceof z.ZodError) {
-      res.status(400).json({ 
-        error: 'Datos inválidos', 
+      res.status(400).json({
+        error: 'Datos inválidos',
         details: error.errors.map(e => ({
           field: e.path.join('.'),
           message: e.message
@@ -114,11 +107,17 @@ router.post('/login', async (req: Request, res: Response) => {
     const data = loginSchema.parse(req.body);
 
     // Find user in database
-    const user = db.prepare(`
-      SELECT id, email, name, password_hash, age, sex 
-      FROM users 
-      WHERE email = ?
-    `).get(data.email) as any;
+    const user = await queryOne<{
+      id: string;
+      email: string;
+      name: string;
+      password_hash: string;
+      age: number;
+      sex: string;
+    }>(
+      'SELECT id, email, name, password_hash, age, sex FROM users WHERE email = $1',
+      [data.email]
+    );
 
     if (!user) {
       res.status(401).json({ error: 'Email o contraseña incorrectos' });
@@ -153,7 +152,7 @@ router.post('/login', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('[Auth] Login error:', error);
-    
+
     if (error instanceof z.ZodError) {
       res.status(400).json({ error: 'Datos inválidos', details: error.errors });
       return;
@@ -163,4 +162,3 @@ router.post('/login', async (req: Request, res: Response) => {
 });
 
 export default router;
-

@@ -1,6 +1,6 @@
 /**
  * EXAM ROUTES
- * 
+ *
  * Handles exam upload and results retrieval
  */
 
@@ -12,28 +12,10 @@ import { calculateHealthScoreWithAnalysis } from '../services/scoring-engine.ser
 import { selectWeeklyActions } from '../services/weekly-actions.service';
 import { saveWeeklyActions } from '../services/weekly-actions-db.service';
 import { eventBus, LabResultsIngestedEvent } from '../events/event-bus';
-import { db } from '../db/sqlite';
+import { query as dbQuery, queryOne, execute } from '../db/postgres';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
-
-// PASO 3: Prepared statements for SQLite (better performance)
-const insertExam = db.prepare(`
-  INSERT INTO exams (examId, userId, examDate, createdAt, healthScore, biomarkers)
-  VALUES (?, ?, ?, ?, ?, ?)
-`);
-
-const updateExamHealthScore = db.prepare(`
-  UPDATE exams 
-  SET healthScore = ?
-  WHERE examId = ?
-`);
-
-const getExamsByUser = db.prepare(`
-  SELECT * FROM exams
-  WHERE userId = ?
-  ORDER BY examDate ASC
-`);
 
 /**
  * POST /api/exams/upload
@@ -52,7 +34,7 @@ router.post(
 
       const file = req.file;
       const validation = validatePDF(file as Express.Multer.File);
-      
+
       if (!validation.valid) {
         res.status(400).json({ error: validation.error });
         return;
@@ -60,7 +42,7 @@ router.post(
 
       // Parse PDF
       const parseResult = await parsePDF(file!.buffer);
-      
+
       if (!parseResult.success || !parseResult.biomarkers) {
         res.status(400).json({
           error: parseResult.error || 'Failed to extract biomarkers from PDF'
@@ -69,88 +51,74 @@ router.post(
       }
 
       // CRITICAL: Get exam date from request body or extracted from PDF
-      // If not found in PDF, frontend MUST provide it
       let examDate: Date;
-      
+
       if (req.body.examDate) {
-        // User provided date (manual input or from frontend)
         examDate = new Date(req.body.examDate);
         if (isNaN(examDate.getTime())) {
           res.status(400).json({ error: 'Invalid exam date format' });
           return;
         }
       } else if (parseResult.examDate) {
-        // Date extracted from PDF
         examDate = parseResult.examDate;
       } else {
-        // No date found - require user input
-        res.status(400).json({ 
+        res.status(400).json({
           error: 'Exam date is required',
           requiresExamDate: true,
-          biomarkers: parseResult.biomarkers // Return biomarkers so frontend can show form
+          biomarkers: parseResult.biomarkers
         });
         return;
       }
 
       // Validate exam date is reasonable
       const now = new Date();
-      const minDate = new Date(now.getFullYear() - 10, 0, 1); // 10 years ago
-      const maxDate = new Date(now.getTime() + 24 * 60 * 60 * 1000); // Tomorrow
-      
+      const minDate = new Date(now.getFullYear() - 10, 0, 1);
+      const maxDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
       if (examDate < minDate || examDate > maxDate) {
         res.status(400).json({ error: 'Exam date must be within the last 10 years and not in the future' });
         return;
       }
 
-      // TODO: Save PDF to storage (S3, local, etc.) and get URL
+      // TODO: Save PDF to Supabase Storage and get URL
       const pdfUrl = `uploads/${req.userId}/${Date.now()}.pdf`;
 
-      // TODO: Create exam record in database with status 'processing'
-      // CRITICAL: Each upload creates a NEW exam record (no overwrite)
-      // examId must be unique per exam
       const examId = `exam_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-      // PASO 3: Save exam to SQLite (WRITE)
-      // Store biomarkers as JSON string for now (will be normalized later)
       const biomarkersJson = JSON.stringify(parseResult.biomarkers);
       const createdAt = new Date().toISOString();
       const examDateISO = examDate.toISOString();
-      
+
       try {
-        insertExam.run(
-          examId,
-          req.userId!,
-          examDateISO,
-          createdAt,
-          null, // healthScore will be updated after analysis
-          biomarkersJson
+        await execute(
+          `INSERT INTO exams ("examId", "userId", "examDate", "createdAt", "healthScore", biomarkers)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [examId, req.userId!, examDateISO, createdAt, null, biomarkersJson]
         );
-        
-        // LOG: Exam saved (POST-ANALYSIS)
-        const totalExams = getExamsByUser.all(req.userId!).length;
-        console.log('✅ Examen guardado en SQLite:', {
+
+        // LOG: Exam saved
+        const rows = await dbQuery<{ count: string }>(
+          `SELECT COUNT(*) as count FROM exams WHERE "userId" = $1`,
+          [req.userId!]
+        );
+        const totalExams = parseInt(rows[0]?.count || '0');
+        console.log('✅ Examen guardado en PostgreSQL:', {
           examId,
           examDate: examDateISO.split('T')[0],
           userId: req.userId,
           totalExamsForUser: totalExams,
-          storage: 'SQLite (persistent)'
+          storage: 'PostgreSQL (Supabase)'
         });
       } catch (error: any) {
-        console.error('Error saving exam to SQLite:', error);
-        // Continue with processing even if DB write fails (graceful degradation)
+        console.error('Error saving exam to PostgreSQL:', error);
+        // Continue with processing even if DB write fails
       }
 
       // Emit LabResultsIngested event
-      // This triggers:
-      // 1. Biomarker evaluation
-      // 2. Health score calculation
-      // 3. Trend analysis
-      // 4. Weekly actions generation
       const event: LabResultsIngestedEvent = {
         type: 'LabResultsIngested',
         userId: req.userId!,
         examId,
-        examDate, // CRITICAL: Pass exam date to event handler
+        examDate,
         biomarkerValues: parseResult.biomarkers.map(b => ({
           biomarker: b.biomarker,
           value: b.value,
@@ -161,14 +129,13 @@ router.post(
 
       await eventBus.emit(event);
 
-      // Calculate for immediate response (event handler does async work)
+      // Calculate for immediate response
       const analysis = calculateHealthScoreWithAnalysis(parseResult.biomarkers);
 
       // Select weekly actions (max 3) based on biomarker analysis
-      // Includes 14-day check internally
       const weeklyActionsResult = await selectWeeklyActions(analysis.biomarkers, req.userId!);
 
-      // Save weekly actions to database (mandatory query A)
+      // Save weekly actions to database
       const savedActions = await saveWeeklyActions(
         weeklyActionsResult.actions.map(action => ({
           user_id: req.userId!,
@@ -183,26 +150,24 @@ router.post(
         }))
       );
 
-      // TODO: Save biomarker values to database (normalized table)
-      // TODO: Save score to database (scores table)
-      // TODO: Update exam status to 'completed' and set healthScore
-      
-      // PASO 3: Update exam with health score in SQLite
+      // Update exam with health score
       try {
-        updateExamHealthScore.run(analysis.totalScore, examId);
-        console.log('✅ Health score actualizado en SQLite:', {
+        await execute(
+          `UPDATE exams SET "healthScore" = $1 WHERE "examId" = $2`,
+          [analysis.totalScore, examId]
+        );
+        console.log('✅ Health score actualizado en PostgreSQL:', {
           examId,
           healthScore: analysis.totalScore
         });
       } catch (error: any) {
-        console.error('Error updating health score in SQLite:', error);
-        // Continue even if update fails
+        console.error('Error updating health score in PostgreSQL:', error);
       }
 
       res.status(201).json({
         examId,
         userId: req.userId,
-        examDate: examDate.toISOString().split('T')[0], // YYYY-MM-DD format
+        examDate: examDate.toISOString().split('T')[0],
         healthScore: analysis.totalScore,
         biomarkers: analysis.biomarkers.map(b => ({
           biomarker: b.biomarker,
@@ -255,33 +220,32 @@ router.get('/:examId', authenticateToken, async (req: AuthRequest, res: Response
     const { examId } = req.params;
 
     // CRITICAL: Fetch exam and verify it belongs to user (authorization check)
-    const exam = db.prepare(`
-      SELECT * FROM exams 
-      WHERE examId = ? AND userId = ?
-    `).get(examId, req.userId) as any;
+    const exam = await queryOne<any>(
+      `SELECT * FROM exams WHERE "examId" = $1 AND "userId" = $2`,
+      [examId, req.userId]
+    );
 
     if (!exam) {
       res.status(404).json({ error: 'Exam not found or unauthorized' });
       return;
     }
 
-    // Parse biomarkers JSON
     const biomarkers = JSON.parse(exam.biomarkers);
 
-    // Fetch biomarker history for this exam
-    const biomarkerHistory = db.prepare(`
-      SELECT biomarker_code, value, status_at_time, unit
-      FROM biomarker_result
-      WHERE user_id = ? AND exam_id = ?
-    `).all(req.userId, examId);
+    const biomarkerHistory = await dbQuery<any>(
+      `SELECT biomarker_code, value, status_at_time, unit
+       FROM biomarker_result
+       WHERE user_id = $1 AND exam_id = $2`,
+      [req.userId, examId]
+    );
 
     res.status(200).json({
       examId: exam.examId,
       userId: exam.userId,
       examDate: exam.examDate,
       healthScore: exam.healthScore,
-      biomarkers: biomarkers,
-      biomarkerHistory: biomarkerHistory,
+      biomarkers,
+      biomarkerHistory,
       createdAt: exam.createdAt
     });
   } catch (error: any) {
@@ -293,16 +257,6 @@ router.get('/:examId', authenticateToken, async (req: AuthRequest, res: Response
 /**
  * GET /api/exams
  * Lists all exams for the authenticated user
- * 
- * Returns array of exams with examDate for comparison detection
- * 
- * Example response:
- * {
- *   exams: [
- *     { examId: "1", examDate: "2025-03-10", biomarkers: [...] },
- *     { examId: "2", examDate: "2025-06-15", biomarkers: [...] }
- *   ]
- * }
  */
 router.get('/', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
@@ -311,18 +265,19 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    // PASO 4: Read exams from SQLite (READ)
     try {
-      const rows = getExamsByUser.all(req.userId!) as Array<{
+      const rows = await dbQuery<{
         examId: string;
         userId: string;
         examDate: string;
         createdAt: string;
         healthScore: number | null;
         biomarkers: string;
-      }>;
-      
-      // Parse biomarkers JSON and format response
+      }>(
+        `SELECT * FROM exams WHERE "userId" = $1 ORDER BY "examDate" ASC`,
+        [req.userId!]
+      );
+
       const exams = rows.map(row => {
         let biomarkers;
         try {
@@ -331,37 +286,33 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response) => {
           console.warn('Error parsing biomarkers JSON for exam:', row.examId);
           biomarkers = [];
         }
-        
+
         return {
           examId: row.examId,
-          examDate: row.examDate.split('T')[0], // YYYY-MM-DD
+          examDate: row.examDate.split('T')[0],
           healthScore: row.healthScore,
           createdAt: row.createdAt,
-          biomarkers // Include for compatibility
+          biomarkers
         };
       });
-      
-      // LOG: Exams returned (VERIFY LISTADO)
-      console.log('📦 Exámenes devueltos desde SQLite:', {
+
+      console.log('📦 Exámenes devueltos desde PostgreSQL:', {
         userId: req.userId,
         totalExams: exams.length,
-        storage: 'SQLite (persistent)',
+        storage: 'PostgreSQL (Supabase)',
         exams: exams.map(e => ({
           id: e.examId,
           date: e.examDate,
           healthScore: e.healthScore
         }))
       });
-      
-      // CRITICAL: Each exam must have examDate (not uploadedAt)
-      res.status(200).json({
-        exams
-      });
+
+      res.status(200).json({ exams });
     } catch (error: any) {
-      console.error('Error reading exams from SQLite:', error);
-      res.status(500).json({ 
+      console.error('Error reading exams from PostgreSQL:', error);
+      res.status(500).json({
         error: error.message || 'Failed to retrieve exams',
-        exams: [] // Return empty array on error
+        exams: []
       });
     }
   } catch (error: any) {
@@ -370,4 +321,3 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response) => {
 });
 
 export default router;
-

@@ -33,21 +33,18 @@ export async function getDashboard(req: AuthRequest, res: Response): Promise<voi
     // ========================================
     // PASO 1: Get ALL exams from database
     // ========================================
-    const { db } = await import('../db/sqlite');
-    const getExamsByUser = db.prepare(`
-      SELECT * FROM exams
-      WHERE userId = ?
-      ORDER BY examDate ASC
-    `);
-    
-    const examsRows = getExamsByUser.all(req.userId) as Array<{
+    const { query: dbQuery } = await import('../db/postgres');
+    const examsRows = await dbQuery<{
       examId: string;
       userId: string;
       examDate: string;
       createdAt: string;
       healthScore: number | null;
       biomarkers: string;
-    }>;
+    }>(
+      `SELECT * FROM exams WHERE "userId" = $1 ORDER BY "examDate" ASC`,
+      [req.userId]
+    );
     
     // Parse biomarkers and create exams array
     interface ExamData {
@@ -167,7 +164,7 @@ export async function getDashboard(req: AuthRequest, res: Response): Promise<voi
     // PASO 5: Build dashboard with userId and exams array
     // ========================================
     const { buildDashboardData } = await import('../services/dashboard.service');
-    const dashboardData = buildDashboardData(
+    const dashboardData = await buildDashboardData(
       req.userId!, // Pass userId for independent biomarker state
       currentAnalysis.biomarkers,
       currentAnalysis.totalScore,
@@ -238,18 +235,17 @@ export async function getCurrentWeekActions(req: AuthRequest, res: Response): Pr
       return;
     }
 
-    // Import db
-    const { db } = await import('../db/sqlite');
-    
+    const { query: dbQuery } = await import('../db/postgres');
     const currentDate = new Date().toISOString().split('T')[0];
 
     // CRITICAL: Filter by user_id to ensure data isolation
-    const actions = db.prepare(`
-      SELECT * FROM weekly_action_instances
-      WHERE user_id = ?
-        AND week_start <= ?
-        AND week_end >= ?
-    `).all(req.userId, currentDate, currentDate) as any[];
+    const actions = await dbQuery<any>(
+      `SELECT * FROM weekly_action_instances
+       WHERE user_id = $1
+         AND week_start <= $2
+         AND week_end >= $3`,
+      [req.userId, currentDate, currentDate]
+    );
 
     // Parse JSON fields
     const parsedActions = actions.map(action => ({

@@ -32,7 +32,7 @@ router.get(
         return;
       }
 
-      const transitionData = getWeeklyTransitionData(req.userId);
+      const transitionData = await getWeeklyTransitionData(req.userId);
 
       res.json(transitionData);
     } catch (error: any) {
@@ -72,7 +72,7 @@ router.post(
       }
 
       // 2. Marcar que vio la transición
-      markWeeklyTransitionSeen(req.userId);
+      await markWeeklyTransitionSeen(req.userId);
 
       // 3. Retornar éxito
       res.json({
@@ -106,7 +106,7 @@ router.post(
       }
 
       // Marcar que vio la transición
-      markWeeklyTransitionSeen(req.userId);
+      await markWeeklyTransitionSeen(req.userId);
 
       res.json({
         success: true,

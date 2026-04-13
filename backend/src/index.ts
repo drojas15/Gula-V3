@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import './db/sqlite'; // Initialize SQLite database
+import './db/postgres'; // Initialize PostgreSQL connection
 import authRoutes from './routes/auth.routes';
 import examRoutes from './routes/exam.routes';
 import userRoutes from './routes/user.routes';
