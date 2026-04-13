@@ -1,7 +1,9 @@
+import dotenv from 'dotenv';
+dotenv.config(); // MUST be before any other imports that read process.env
+
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
-import './db/postgres'; // Initialize PostgreSQL connection
+import { connectDB } from './db/postgres';
 import authRoutes from './routes/auth.routes';
 import examRoutes from './routes/exam.routes';
 import userRoutes from './routes/user.routes';
@@ -11,8 +13,6 @@ import dashboardRoutes from './routes/dashboard.routes';
 import weeklyTransitionRoutes from './routes/weekly-transition.routes';
 import { initializeCronJobs } from './jobs/cron';
 import './events/event-handlers'; // Register event handlers
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -48,12 +48,18 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 GULA Backend running on port ${PORT}`);
-  
-  // Initialize cron jobs
-  if (process.env.NODE_ENV !== 'test') {
-    initializeCronJobs();
-  }
-});
+connectDB()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`🚀 GULA Backend running on port ${PORT}`);
+
+      if (process.env.NODE_ENV !== 'test') {
+        initializeCronJobs();
+      }
+    });
+  })
+  .catch(err => {
+    console.error('[DB] Connection failed, server not started:', err);
+    process.exit(1);
+  });
 
