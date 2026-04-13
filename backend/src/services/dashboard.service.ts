@@ -252,7 +252,7 @@ export function getComparisonPair<T extends { examDate?: Date | string | null }>
  * - NEVER use 0 for unmeasured biomarkers in recent exams
  * - Preserve last historical value
  */
-export function buildDashboardData(
+export async function buildDashboardData(
   userId: string, // For fetching independent biomarker state
   _currentBiomarkers: AnalyzedBiomarker[], // Not used anymore - kept for compatibility
   currentScore: number,
@@ -260,7 +260,7 @@ export function buildDashboardData(
   _previousBiomarkers: Array<{ biomarker: BiomarkerKey; value: number }> | null, // Not used anymore - kept for compatibility
   weeklyActions: WeeklyActionInstance[],
   exams: Array<{ examDate: string }> // All exams for baseline calculation
-): DashboardData {
+): Promise<DashboardData> {
   // Calculate score trend (last vs second-to-last only)
   const scoreTrend = calculateScoreTrend(currentScore, previousScore);
   
@@ -305,7 +305,7 @@ export function buildDashboardData(
   // - Mostrar fecha de última medición
   // ========================================
   
-  const { getLatestBiomarkerState } = require('./biomarker-state.service');
+  const { getLatestBiomarkerState } = await import('./biomarker-state.service');
   const biomarkerStates: Array<{
     biomarker: BiomarkerKey;
     value: number | null;
@@ -315,7 +315,7 @@ export function buildDashboardData(
     measurementCount: number;
     previousValue: number | null;
     previousMeasuredAt: string | null;
-  }> = getLatestBiomarkerState(userId);
+  }> = await getLatestBiomarkerState(userId);
   
   // Build biomarker trends usando el estado independiente de cada biomarcador
   // REGLA: NUNCA mostrar biomarcadores sin medición (value = null)
@@ -359,7 +359,7 @@ export function buildDashboardData(
   // ========================================
   // PASO 3: Calcular fiabilidad (cobertura de datos)
   // ========================================
-  const { calculateReliability } = require('./biomarker-state.service');
+  const { calculateReliability } = await import('./biomarker-state.service');
   const reliabilityData = calculateReliability(biomarkerStates);
   
   return {

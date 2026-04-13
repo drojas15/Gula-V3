@@ -1,51 +1,49 @@
 /**
  * WEEKLY ACTIONS DATABASE SERVICE
- * 
+ *
  * Implements the 3 mandatory queries for weekly actions system.
  * These are the core queries - without these, there is no system.
  */
 
-import { WeeklyActionInstance, CreateWeeklyActionInput, UpdateProgressInput } from '../models/WeeklyActionInstance.model';
+import { WeeklyActionInstance, CreateWeeklyActionInput } from '../models/WeeklyActionInstance.model';
+import { query as dbQuery, queryOne, execute } from '../db/postgres';
+import { randomUUID } from 'crypto';
 
 /**
  * A. Guardar acciones semanales
- * INSERT INTO weekly_actions (...)
+ * INSERT INTO weekly_action_instances (...)
  * CRITICAL: Always requires user_id from CreateWeeklyActionInput
  */
 export async function saveWeeklyActions(
   actions: CreateWeeklyActionInput[]
 ): Promise<WeeklyActionInstance[]> {
-  const { db } = await import('../db/sqlite');
-  const { randomUUID } = await import('crypto');
-
-  const insertStmt = db.prepare(`
-    INSERT INTO weekly_action_instances (
-      id, user_id, action_id, category, weekly_target, success_metric,
-      impacted_biomarkers, difficulty, progress, completion_state,
-      week_start, week_end, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
   const savedActions: WeeklyActionInstance[] = [];
 
   for (const action of actions) {
     const id = randomUUID();
     const now = new Date().toISOString();
 
-    insertStmt.run(
-      id,
-      action.user_id, // CRITICAL: user_id from input
-      action.action_id,
-      action.category,
-      action.weekly_target,
-      action.success_metric,
-      JSON.stringify(action.impacted_biomarkers),
-      action.difficulty,
-      0, // initial progress
-      'PENDING', // initial completion_state
-      action.week_start.toISOString().split('T')[0],
-      action.week_end.toISOString().split('T')[0],
-      now
+    await execute(
+      `INSERT INTO weekly_action_instances (
+        id, user_id, action_id, category, weekly_target, success_metric,
+        impacted_biomarkers, difficulty, progress, completion_state,
+        week_start, week_end, created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+      [
+        id,
+        action.user_id,
+        action.action_id,
+        action.category,
+        action.weekly_target,
+        action.success_metric,
+        JSON.stringify(action.impacted_biomarkers),
+        action.difficulty,
+        0,
+        'PENDING',
+        action.week_start.toISOString().split('T')[0],
+        action.week_end.toISOString().split('T')[0],
+        now
+      ]
     );
 
     savedActions.push({
@@ -70,46 +68,29 @@ export async function saveWeeklyActions(
 
 /**
  * B. Acciones completadas últimos 14 días
- * SELECT action_id
- * FROM weekly_actions
- * WHERE user_id = ?
- * AND completion_state = 'COMPLETED'
- * AND created_at >= NOW() - INTERVAL '14 days';
- * 
- * This protects against repetition (key feature).
  * CRITICAL: Always filters by user_id
  */
 export async function getCompletedActionsInLast14Days(
   userId: string
 ): Promise<string[]> {
-  const { db } = await import('../db/sqlite');
-
-  // Calculate date 14 days ago
   const fourteenDaysAgo = new Date();
   fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
   const cutoffDate = fourteenDaysAgo.toISOString();
 
-  // CRITICAL: Filter by user_id to ensure data isolation
-  const results = db.prepare(`
-    SELECT action_id
-    FROM weekly_action_instances
-    WHERE user_id = ?
-      AND completion_state = 'COMPLETED'
-      AND created_at >= ?
-  `).all(userId, cutoffDate) as Array<{ action_id: string }>;
+  const results = await dbQuery<{ action_id: string }>(
+    `SELECT action_id
+     FROM weekly_action_instances
+     WHERE user_id = $1
+       AND completion_state = 'COMPLETED'
+       AND created_at >= $2`,
+    [userId, cutoffDate]
+  );
 
   return results.map(row => row.action_id);
 }
 
 /**
  * C. Update de progreso
- * UPDATE weekly_actions
- * SET progress = ?, completion_state = ?
- * WHERE id = ? AND user_id = ?;
- * 
- * Frontend only sends numbers.
- * Backend decides state.
- * 
  * CRITICAL: Validates that action belongs to user (authorization check)
  */
 export async function updateWeeklyActionProgress(
@@ -117,9 +98,6 @@ export async function updateWeeklyActionProgress(
   progress: number,
   userId: string
 ): Promise<WeeklyActionInstance> {
-  const { db } = await import('../db/sqlite');
-
-  // Determine state based on progress
   let completion_state: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
   if (progress >= 100) {
     completion_state = 'COMPLETED';
@@ -129,32 +107,21 @@ export async function updateWeeklyActionProgress(
     completion_state = 'PENDING';
   }
 
-  // AUTHORIZATION CHECK: Update only if action belongs to user
-  const updateStmt = db.prepare(`
-    UPDATE weekly_action_instances
-    SET progress = ?, completion_state = ?
-    WHERE id = ? AND user_id = ?
-  `);
-
-  const result = updateStmt.run(
-    Math.max(0, Math.min(100, progress)),
-    completion_state,
-    weeklyActionId,
-    userId
+  const result = await execute(
+    `UPDATE weekly_action_instances
+     SET progress = $1, completion_state = $2
+     WHERE id = $3 AND user_id = $4`,
+    [Math.max(0, Math.min(100, progress)), completion_state, weeklyActionId, userId]
   );
 
-  // If no rows were updated, action doesn't exist or doesn't belong to user
-  if (result.changes === 0) {
+  if (result.rowCount === 0) {
     throw new Error('Action not found or unauthorized');
   }
 
-  // Fetch updated action
-  const getStmt = db.prepare(`
-    SELECT * FROM weekly_action_instances
-    WHERE id = ? AND user_id = ?
-  `);
-
-  const action = getStmt.get(weeklyActionId, userId) as any;
+  const action = await queryOne<any>(
+    `SELECT * FROM weekly_action_instances WHERE id = $1 AND user_id = $2`,
+    [weeklyActionId, userId]
+  );
 
   if (!action) {
     throw new Error('Action not found after update');
@@ -179,27 +146,23 @@ export async function updateWeeklyActionProgress(
 
 /**
  * Get active weekly actions for a user (max 3)
- * 
- * Gets actions for current week (week_start <= CURRENT_DATE <= week_end)
  * CRITICAL: Always filters by user_id
  */
 export async function getActiveWeeklyActions(
   userId: string,
   currentDate: Date
 ): Promise<WeeklyActionInstance[]> {
-  const { db } = await import('../db/sqlite');
-
   const currentDateStr = currentDate.toISOString().split('T')[0];
 
-  // CRITICAL: Filter by user_id to ensure data isolation
-  const actions = db.prepare(`
-    SELECT * FROM weekly_action_instances
-    WHERE user_id = ?
-      AND week_start <= ?
-      AND week_end >= ?
-    ORDER BY created_at
-    LIMIT 3
-  `).all(userId, currentDateStr, currentDateStr) as any[];
+  const actions = await dbQuery<any>(
+    `SELECT * FROM weekly_action_instances
+     WHERE user_id = $1
+       AND week_start <= $2
+       AND week_end >= $3
+     ORDER BY created_at
+     LIMIT 3`,
+    [userId, currentDateStr, currentDateStr]
+  );
 
   return actions.map(action => ({
     id: action.id,
@@ -226,18 +189,6 @@ export async function getLatestExamData(userId: string): Promise<{
   healthScore: number;
   biomarkers: Array<{ biomarker: string; value: number }>;
 } | null> {
-  // TODO: Implement database query
-  // SELECT e.id, e.health_score
-  // FROM exams e
-  // WHERE e.user_id = $1
-  //   AND e.status = 'completed'
-  // ORDER BY e.uploaded_at DESC
-  // LIMIT 1;
-  //
-  // SELECT biomarker, value
-  // FROM biomarker_values
-  // WHERE exam_id = $1;
-
   return null;
 }
 
@@ -249,35 +200,16 @@ export async function getPreviousExamData(userId: string): Promise<{
   healthScore: number;
   biomarkers: Array<{ biomarker: string; value: number }>;
 } | null> {
-  // TODO: Implement database query
-  // SELECT e.id, e.health_score
-  // FROM exams e
-  // WHERE e.user_id = $1
-  //   AND e.status = 'completed'
-  // ORDER BY e.uploaded_at DESC
-  // LIMIT 1 OFFSET 1;
-  //
-  // SELECT biomarker, value
-  // FROM biomarker_values
-  // WHERE exam_id = $1;
-
   return null;
 }
 
 /**
  * Get biomarker history from biomarker_result table
- * 
+ *
  * REGLA DE ORO: biomarker_result es HISTÓRICO
  * - NUNCA se actualiza
  * - NUNCA se reemplaza
  * - SOLO INSERT
- * 
- * Query:
- * SELECT exam_date, value, status_at_time, unit
- * FROM biomarker_result
- * WHERE user_id = ?
- *   AND biomarker_code = ?
- * ORDER BY exam_date ASC
  */
 export async function getBiomarkerHistoryFromDB(
   userId: string,
@@ -288,27 +220,21 @@ export async function getBiomarkerHistoryFromDB(
   status_at_time: string;
   unit: string;
 }>> {
-  // Import SQLite db
-  const { db } = await import('../db/sqlite');
-  
-  // Prepared statement for reading biomarker history
-  const getHistory = db.prepare(`
-    SELECT exam_date, value, status_at_time, unit
-    FROM biomarker_result
-    WHERE user_id = ?
-      AND biomarker_code = ?
-    ORDER BY exam_date ASC
-  `);
-  
   try {
-    const rows = getHistory.all(userId, biomarkerCode) as Array<{
+    const rows = await dbQuery<{
       exam_date: string;
       value: number;
       status_at_time: string;
       unit: string;
-    }>;
-    
-    // Convert to expected format
+    }>(
+      `SELECT exam_date, value, status_at_time, unit
+       FROM biomarker_result
+       WHERE user_id = $1
+         AND biomarker_code = $2
+       ORDER BY exam_date ASC`,
+      [userId, biomarkerCode]
+    );
+
     return rows.map(row => ({
       exam_date: new Date(row.exam_date),
       value: row.value,
@@ -316,8 +242,7 @@ export async function getBiomarkerHistoryFromDB(
       unit: row.unit
     }));
   } catch (error: any) {
-    console.error('Error reading biomarker history from SQLite:', error);
+    console.error('Error reading biomarker history from PostgreSQL:', error);
     return [];
   }
 }
-
