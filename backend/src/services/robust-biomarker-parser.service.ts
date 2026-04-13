@@ -143,33 +143,36 @@ function isNumberPartOfRange(candidate: NumberCandidate, line: string): boolean 
 }
 
 /**
- * Filtra candidatos que son parte de fechas o rangos
+ * Filtra candidatos que son parte de fechas o rangos.
+ * IMPORTANT: `line` must be the SAME string from which positions were extracted
+ * (i.e. the normalized string). Using rawLine here would cause position drift
+ * due to whitespace collapsing in normalizeLineText.
  */
-function filterInvalidCandidates(candidates: NumberCandidate[], originalLine: string): NumberCandidate[] {
+function filterInvalidCandidates(candidates: NumberCandidate[], line: string): NumberCandidate[] {
   return candidates.filter(candidate => {
     // Verificar si este número específico es parte de una fecha
-    if (isNumberPartOfDate(candidate, originalLine)) {
+    if (isNumberPartOfDate(candidate, line)) {
       console.log(`  [Parser] Ignorando ${candidate.value} (es parte de fecha): "${candidate.context}"`);
       return false;
     }
-    
+
     // Verificar si este número específico es parte de un rango
-    if (isNumberPartOfRange(candidate, originalLine)) {
+    if (isNumberPartOfRange(candidate, line)) {
       console.log(`  [Parser] Ignorando ${candidate.value} (es parte de rango): "${candidate.context}"`);
       return false;
     }
-    
+
     // Verificar si está precedido por palabras clave de referencia
-    const contextBefore = originalLine.substring(Math.max(0, candidate.position - 20), candidate.position).toLowerCase();
+    const contextBefore = line.substring(Math.max(0, candidate.position - 20), candidate.position).toLowerCase();
     const refKeywords = ['ref', 'vr', 'rango', 'referencia', 'reference', 'range', 'valores de referencia'];
-    
+
     for (const keyword of refKeywords) {
       if (contextBefore.includes(keyword)) {
         console.log(`  [Parser] Ignorando ${candidate.value} (precedido por '${keyword}'): "${candidate.context}"`);
         return false;
       }
     }
-    
+
     return true;
   });
 }
@@ -308,8 +311,8 @@ export function parseLineForBiomarker(rawLine: string): ParsedBiomarker | null {
   const allNumbers = extractAllNumbers(normalized);
   console.log(`[Parser] Números encontrados: [${allNumbers.map(n => n.value).join(', ')}]`);
   
-  // 3. Filtrar candidatos inválidos
-  const validCandidates = filterInvalidCandidates(allNumbers, rawLine);
+  // 3. Filtrar candidatos inválidos (usar normalized para que las posiciones coincidan)
+  const validCandidates = filterInvalidCandidates(allNumbers, normalized);
   console.log(`[Parser] Candidatos válidos: [${validCandidates.map(n => n.value).join(', ')}]`);
   
   // 4. Si no hay candidatos válidos, devolver null
@@ -360,49 +363,82 @@ export function parseLineForBiomarker(rawLine: string): ParsedBiomarker | null {
 
 /**
  * Parsea texto completo del PDF línea por línea
- * 
+ *
  * Reglas:
  * - Un biomarcador = un valor (primer match válido)
  * - No sobrescribir valores
  * - Líneas independientes
+ * - Soporte multi-línea: si el biomarcador se detecta sin valor, se busca el valor en la siguiente línea
  */
 export function parseFullText(pdfText: string): ParsedBiomarker[] {
   const lines = pdfText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-  
+
   console.log(`[Parser] Parseando ${lines.length} líneas`);
   console.log('[Parser] =====================================');
-  
+
   const results: ParsedBiomarker[] = [];
   const foundBiomarkers = new Set<BiomarkerKey>();
-  
+
+  // Para soporte multi-línea: guarda el biomarcador detectado sin valor en la línea anterior
+  let pendingBiomarker: { key: BiomarkerKey; rawLine: string } | null = null;
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    
+
     const parsed = parseLineForBiomarker(line);
-    
+
     if (parsed && parsed.biomarker) {
-      // Solo agregar si NO se ha encontrado antes
+      // Línea contiene un alias de biomarcador
+      pendingBiomarker = null; // reset (esta línea tiene contexto propio)
+
       if (!foundBiomarkers.has(parsed.biomarker)) {
-        // Si tiene valor válido, marcar como encontrado y agregar
         if (parsed.value !== null) {
           results.push(parsed);
           foundBiomarkers.add(parsed.biomarker);
           console.log(`[Parser] Biomarcador ${parsed.biomarker} agregado con valor ${parsed.value} (línea ${i})`);
         } else {
-          // Si NO tiene valor, NO marcar como encontrado (permitir siguiente match)
-          console.log(`[Parser] Biomarcador ${parsed.biomarker} detectado sin valor, continuando búsqueda (línea ${i})`);
+          // Biomarcador detectado sin valor → esperar siguiente línea
+          pendingBiomarker = { key: parsed.biomarker, rawLine: line };
+          console.log(`[Parser] Biomarcador ${parsed.biomarker} detectado sin valor, esperando siguiente línea (línea ${i})`);
         }
       } else {
         console.log(`[Parser] Biomarcador ${parsed.biomarker} ya detectado con valor, ignorando (línea ${i})`);
       }
+    } else if (pendingBiomarker !== null && !foundBiomarkers.has(pendingBiomarker.key)) {
+      // Línea sin alias de biomarcador — intentar extraer valor para el pendingBiomarker
+      // Heurística: solo si la línea es corta (≤ 60 chars) y tiene pocos candidatos numéricos
+      const normalized = normalizeLineText(line);
+      if (normalized.length <= 60) {
+        const nums = extractAllNumbers(normalized);
+        const valid = filterInvalidCandidates(nums, normalized);
+        if (valid.length >= 1 && valid.length <= 3) {
+          const selected = selectClosestValue(valid, 0);
+          if (selected) {
+            const unit = extractUnit(line);
+            const confidence = determineConfidence(selected.value, valid.length, unit !== null);
+            results.push({
+              biomarker: pendingBiomarker.key,
+              raw_line: pendingBiomarker.rawLine + ' | ' + line,
+              value: selected.value,
+              unit,
+              confidence
+            });
+            foundBiomarkers.add(pendingBiomarker.key);
+            console.log(`[Parser] Biomarcador ${pendingBiomarker.key} resuelto con valor multi-línea: ${selected.value} (línea ${i})`);
+          }
+        }
+      }
+      pendingBiomarker = null;
+    } else {
+      pendingBiomarker = null;
     }
-    
+
     console.log('[Parser] -------------------------------------');
   }
-  
+
   console.log('[Parser] =====================================');
   console.log(`[Parser] Total biomarcadores parseados: ${results.length}`);
-  
+
   return results;
 }
 
