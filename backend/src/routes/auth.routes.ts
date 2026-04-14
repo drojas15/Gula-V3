@@ -8,7 +8,7 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
-import { query as dbQuery, queryOne, execute } from '../db/postgres';
+import { queryOne, execute } from '../db/postgres';
 import { randomUUID } from 'crypto';
 
 const router = Router();
@@ -66,7 +66,7 @@ router.post('/signup', async (req: Request, res: Response) => {
     const token = jwt.sign(
       { userId },
       process.env.JWT_SECRET || 'secret',
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as any }
     );
 
     console.log('[Auth] User created successfully:', userId);
@@ -135,7 +135,7 @@ router.post('/login', async (req: Request, res: Response) => {
     const token = jwt.sign(
       { userId: user.id },
       process.env.JWT_SECRET || 'secret',
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as any }
     );
 
     console.log('[Auth] User logged in successfully:', user.id);

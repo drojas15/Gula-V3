@@ -11,7 +11,7 @@
  */
 
 import { BiomarkerKey, Status, BIOMARKERS } from '../config/biomarkers.config';
-import { query as dbQuery, queryOne } from '../db/postgres';
+import { query as dbQuery } from '../db/postgres';
 
 export interface BiomarkerState {
   biomarker: BiomarkerKey;

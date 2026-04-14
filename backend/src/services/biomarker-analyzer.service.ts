@@ -170,7 +170,7 @@ export function extractBiomarkers(pdfText: string): BiomarkerValue[] {
  * Rejects values preceded by REF, VR, RANGO
  * Rejects range patterns (e.g., "70-110")
  */
-function extractValueFromScanLine(scanLine: string, biomarkerLabel: string): { value: number | null; unit: string } {
+function extractValueFromScanLine(scanLine: string, _biomarkerLabel: string): { value: number | null; unit: string } {
   const normalized = scanLine.toUpperCase();
   
   // Skip if line contains range keywords

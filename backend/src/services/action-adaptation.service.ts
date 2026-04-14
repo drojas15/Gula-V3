@@ -231,9 +231,9 @@ export function isInCooldown(cooldownUntil: string | null, currentDate: Date = n
  * @returns Historial de la acción
  */
 export async function getActionHistory(
-  userId: string,
-  actionId: string,
-  weeks: number = 3
+  _userId: string,
+  _actionId: string,
+  _weeks: number = 3
 ): Promise<ActionHistory[]> {
   // TODO: Implementar consulta a base de datos
   // Por ahora retorna array vacío

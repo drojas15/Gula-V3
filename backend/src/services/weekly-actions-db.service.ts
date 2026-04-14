@@ -195,7 +195,7 @@ export async function getLatestExamData(_userId: string): Promise<{
 /**
  * Get previous exam data for trend comparison
  */
-export async function getPreviousExamData(userId: string): Promise<{
+export async function getPreviousExamData(_userId: string): Promise<{
   examId: string;
   healthScore: number;
   biomarkers: Array<{ biomarker: string; value: number }>;

@@ -16,7 +16,7 @@ import { analyzeBiomarkerTrends, analyzeScoreTrend } from '../services/trend-ana
 import { selectWeeklyActions } from '../services/weekly-actions.service';
 import { BiomarkerKey, BIOMARKERS, MULTIPLIERS, TRAFFIC_LIGHT_MAP } from '../config/biomarkers.config';
 import { RECOMMENDATION_KEYS, getRiskKey } from '../config/recommendations.config';
-import { query as dbQuery, queryOne, execute } from '../db/postgres';
+import { query as dbQuery, execute } from '../db/postgres';
 
 /**
  * Handles LabResultsIngested event
@@ -29,7 +29,7 @@ async function handleLabResultsIngested(event: LabResultsIngestedEvent): Promise
 
   try {
     // 1. Evaluate biomarkers (determine status)
-    const evaluations = evaluateBiomarkers(event.biomarkerValues);
+    const evaluations = evaluateBiomarkers(event.biomarkerValues as any);
 
     // 2. Calculate health score
     const scoreResult = calculateHealthScore(evaluations);
@@ -97,8 +97,8 @@ async function handleLabResultsIngested(event: LabResultsIngestedEvent): Promise
     // 3. Get previous exam for trend analysis
     const previousValues = null; // Placeholder
 
-    // 4. Analyze trends
-    const biomarkerTrends = analyzeBiomarkerTrends(
+    // 4. Analyze trends (result unused — placeholder for future use)
+    analyzeBiomarkerTrends(
       event.biomarkerValues.map(bv => ({
         biomarker: bv.biomarker as BiomarkerKey,
         value: bv.value

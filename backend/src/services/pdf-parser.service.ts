@@ -6,7 +6,7 @@
  */
 
 import pdfParse from 'pdf-parse';
-import { extractBiomarkers, normalizeUnits } from './biomarker-analyzer.service';
+import { normalizeUnits } from './biomarker-analyzer.service';
 import { BiomarkerValue } from './scoring-engine.service';
 import { parseFullText, convertToLegacyFormat, ParsedBiomarker } from './robust-biomarker-parser.service';
 

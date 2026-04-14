@@ -20,7 +20,7 @@ export interface BiomarkerTrendData {
 export interface ScoreTrendData {
   currentScore: number;
   previousScore: number | null;
-  trend: 'UP' | 'STABLE' | 'DOWN';
+  trend: 'UP' | 'STABLE' | 'DOWN' | 'NONE';
 }
 
 /**
