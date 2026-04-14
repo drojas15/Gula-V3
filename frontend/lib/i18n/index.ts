@@ -8,7 +8,7 @@
 import esLATAM from './es-LATAM.json';
 
 type TranslationKey = string;
-type Translations = Record<string, string>;
+type Translations = Record<string, unknown>;
 
 let currentLanguage = 'es-LATAM';
 const translations: Record<string, Translations> = {

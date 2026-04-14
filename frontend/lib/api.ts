@@ -167,6 +167,7 @@ export interface Exam {
   uploadedAt: string;
   healthScore: number;
   biomarkers: any;
+  examId?: string;
   requiresExamDate?: boolean;
   parsedBiomarkers?: any[];
 }

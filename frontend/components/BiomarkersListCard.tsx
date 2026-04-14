@@ -6,7 +6,6 @@
 
 'use client';
 
-import { translateHealthKey } from '@/lib/utils/translateHealthKey';
 
 interface Biomarker {
   id: string;
@@ -89,11 +88,6 @@ export default function BiomarkersListCard({ biomarkers, hasBaseline = false }: 
     if (trend === 'WORSENING') return '↓';
     if (trend === 'STABLE') return '→';
     return '';
-  };
-
-  const getRecommendationText = (recommendationKey: string): string | null => {
-    // Use centralized translation helper
-    return translateHealthKey(recommendationKey);
   };
 
   if (biomarkers.length === 0) {
