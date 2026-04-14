@@ -167,6 +167,8 @@ export interface Exam {
   uploadedAt: string;
   healthScore: number;
   biomarkers: any;
+  requiresExamDate?: boolean;
+  parsedBiomarkers?: any[];
 }
 
 export const examAPI = {
