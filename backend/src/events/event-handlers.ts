@@ -107,7 +107,7 @@ async function handleLabResultsIngested(event: LabResultsIngestedEvent): Promise
     );
 
     const previousScore = null;
-    const scoreTrend = analyzeScoreTrend(scoreResult.score, previousScore);
+    analyzeScoreTrend(scoreResult.score, previousScore);
 
     // 5. Reset Weekly Action Engine
     const analyzedBiomarkers = evaluations.map(evaluation => {

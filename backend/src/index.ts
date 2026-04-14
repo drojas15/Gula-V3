@@ -40,7 +40,7 @@ app.use('/api/biomarkers', biomarkerHistoryRoutes);
 app.use('/api/weekly-transition', weeklyTransitionRoutes);
 
 // Error handling middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('Error:', err);
   res.status(err.status || 500).json({
     error: err.message || 'Internal server error',

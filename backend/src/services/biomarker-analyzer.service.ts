@@ -240,7 +240,8 @@ function isValidValue(biomarker: BiomarkerKey, value: number): boolean {
     HDL: { min: 0, max: 200 },
     AST: { min: 0, max: 1000 },
     EGFR: { min: 0, max: 200 },
-    URIC_ACID: { min: 0, max: 20 }
+    URIC_ACID: { min: 0, max: 20 },
+    CRP_STANDARD: { min: 0, max: 500 }
   };
 
   const validation = validations[biomarker];

@@ -17,7 +17,6 @@
 import { BiomarkerKey } from '../config/biomarkers.config';
 import {
   MAIN_ACTION_CATALOG,
-  ActionDefinition,
   DifficultyLevel,
   getNextDifficultyLevel,
   canDegrade,

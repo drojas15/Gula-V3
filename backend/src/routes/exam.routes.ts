@@ -8,7 +8,6 @@ import { Router, Response } from 'express';
 import multer from 'multer';
 import { authenticateToken, AuthRequest } from '../middleware/auth.middleware';
 import { parsePDF, validatePDF } from '../services/pdf-parser.service';
-import { parseFullText } from '../services/robust-biomarker-parser.service';
 import { calculateHealthScoreWithAnalysis } from '../services/scoring-engine.service';
 import { selectWeeklyActions } from '../services/weekly-actions.service';
 import { saveWeeklyActions } from '../services/weekly-actions-db.service';

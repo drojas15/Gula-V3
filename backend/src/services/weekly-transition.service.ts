@@ -302,7 +302,7 @@ async function getActionHistoryForUser(
  * Aplica una decisión de adaptación a una acción
  */
 function applyAdaptationDecision(
-  userId: string,
+  _userId: string,
   actionId: string,
   decision: AdaptationDecision
 ): void {

@@ -9,7 +9,6 @@
  * Health scores are only recalculated on exam events.
  */
 
-import { getActiveUsers } from '../services/weekly-actions-db.service'; // TODO: Implement
 import { getLatestExamData } from '../services/weekly-actions-db.service';
 import { selectWeeklyActions } from '../services/weekly-actions.service';
 import { calculateHealthScoreWithAnalysis } from '../services/scoring-engine.service';
