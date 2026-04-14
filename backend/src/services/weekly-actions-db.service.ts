@@ -184,7 +184,7 @@ export async function getActiveWeeklyActions(
 /**
  * Get latest exam data for a user
  */
-export async function getLatestExamData(userId: string): Promise<{
+export async function getLatestExamData(_userId: string): Promise<{
   examId: string;
   healthScore: number;
   biomarkers: Array<{ biomarker: string; value: number }>;

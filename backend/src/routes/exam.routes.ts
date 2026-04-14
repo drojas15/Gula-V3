@@ -84,7 +84,6 @@ router.post(
       }
 
       // TODO: Save PDF to Supabase Storage and get URL
-      const pdfUrl = `uploads/${req.userId}/${Date.now()}.pdf`;
 
       const examId = `exam_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const biomarkersJson = JSON.stringify(parseResult.biomarkers);
