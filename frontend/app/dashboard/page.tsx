@@ -140,27 +140,6 @@ export default function DashboardPage() {
     }
   }, [dashboardData, hasBaseline, exams]);
 
-  // Convert dashboard biomarkers to priorities format
-  // Priorities should come from the API, but if not available, derive from biomarkers
-  const priorities = useMemo(() => {
-    if (!dashboardData?.biomarkers || dashboardData.biomarkers.length === 0) {
-      return [];
-    }
-    
-    return dashboardData.biomarkers
-      .filter(b => b.status !== 'OPTIMAL' && b.value > 0) // Only show biomarkers with actual values
-      .sort((a, b) => {
-        // Sort by severity: CRITICAL > OUT_OF_RANGE > GOOD
-        const severityOrder: Record<string, number> = { CRITICAL: 3, OUT_OF_RANGE: 2, GOOD: 1 };
-        return (severityOrder[b.status] || 0) - (severityOrder[a.status] || 0);
-      })
-      .slice(0, 3)
-      .map((b) => ({
-        biomarker: b.id,
-        urgency: (b.status === 'CRITICAL' || b.status === 'OUT_OF_RANGE' ? 'HIGH' : 'MEDIUM') as 'HIGH' | 'MEDIUM',
-      }));
-  }, [dashboardData]);
-
   // CONDITIONAL RETURNS AFTER ALL HOOKS
   if (loading) {
     return (
