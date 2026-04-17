@@ -325,6 +325,54 @@ export interface WeeklyTransitionData {
   };
 }
 
+// ============================================
+// BIOMARKER API
+// ============================================
+
+export interface BiomarkerHistoryPoint {
+  exam_date: string;
+  value: number;
+  status_at_time: string;
+  unit: string;
+}
+
+export interface BiomarkerHistoryData {
+  biomarker: string;
+  unit: string;
+  points: BiomarkerHistoryPoint[];
+  trend: 'IMPROVING' | 'STABLE' | 'WORSENING' | 'NONE';
+  trend_message_key: string;
+  threshold_lines: {
+    optimal_upper_bound: number | null;
+    good_upper_bound: number | null;
+    out_of_range_upper_bound: number | null;
+  };
+  empty_state: 'NO_EXAMS' | 'ONE_EXAM' | 'HAS_DATA';
+  time_gaps: Array<{ from_date: string; to_date: string; days: number }>;
+}
+
+export const biomarkerAPI = {
+  getHistory: async (biomarkerKey: string): Promise<BiomarkerHistoryData> => {
+    const response = await fetch(`${API_BASE_URL}/biomarkers/${biomarkerKey}/history`, {
+      method: 'GET',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to get biomarker history');
+    }
+
+    return response.json();
+  },
+};
+
+// ============================================
+// WEEKLY TRANSITION API
+// ============================================
+
 export const weeklyTransitionAPI = {
   /**
    * Obtiene datos para la transición semanal
