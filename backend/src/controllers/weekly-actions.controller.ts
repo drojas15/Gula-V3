@@ -7,7 +7,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { calculateHealthScoreWithAnalysis, BiomarkerValue } from '../services/scoring-engine.service';
-import { BiomarkerKey } from '../config/biomarkers.config';
+import { BiomarkerKey, BIOMARKERS } from '../config/biomarkers.config';
 import { 
   updateWeeklyActionProgress as updateProgressInDB,
   getActiveWeeklyActions
@@ -120,21 +120,25 @@ export async function getDashboard(req: AuthRequest, res: Response): Promise<voi
     }
     
     // ========================================
-    // PASO 4: Calculate health scores
+    // PASO 4: Calculate health score from ALL latest biomarker states
+    // REGLA: El score siempre refleja todos los valores conocidos,
+    // no solo los del último examen. Si el examen 2 tiene 6 biomarcadores,
+    // el score incluye esos 6 + los 5 del examen anterior.
     // ========================================
-    const currentBiomarkerValues: BiomarkerValue[] = currentExam.biomarkers.map(b => ({
-      biomarker: b.biomarker as BiomarkerKey,
-      value: b.value,
-      unit: 'mg/dL' // TODO: Get actual unit from config
-    }));
-    
-    const currentAnalysis = calculateHealthScoreWithAnalysis(currentBiomarkerValues);
-    
+    const { getLatestBiomarkerState } = await import('../services/biomarker-state.service');
+    const biomarkerStates = await getLatestBiomarkerState(req.userId!);
+
+    const latestBiomarkerValues: BiomarkerValue[] = biomarkerStates
+      .filter(s => s.value !== null)
+      .map(s => ({
+        biomarker: s.biomarker,
+        value: s.value!,
+        unit: s.unit || BIOMARKERS[s.biomarker]?.unit || 'mg/dL'
+      }));
+
+    const currentAnalysis = calculateHealthScoreWithAnalysis(latestBiomarkerValues);
+
     const previousScore = previousExam?.healthScore || null;
-    const previousBiomarkers = previousExam?.biomarkers.map(b => ({
-      biomarker: b.biomarker as BiomarkerKey,
-      value: b.value
-    })) || null;
 
     // Get current week's actions
     const currentWeekActions = await getActiveWeeklyActions(req.userId, new Date());
@@ -169,7 +173,7 @@ export async function getDashboard(req: AuthRequest, res: Response): Promise<voi
       currentAnalysis.biomarkers,
       currentAnalysis.totalScore,
       previousScore,
-      previousBiomarkers,
+      null,
       weeklyActions,
       exams // Pass all exams for baseline calculation
     );

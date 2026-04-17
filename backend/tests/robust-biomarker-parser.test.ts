@@ -348,7 +348,57 @@ describe('Robust Biomarker Parser - Unit Tests', () => {
   });
   
   // ==============================================
-  // CASO 10: Nivel de confianza
+  // CASO 10: Formato SURA - cabeceras con timestamp
+  // ==============================================
+  describe('SURA - cabeceras de sección con Validado', () => {
+    test('Ignora línea de cabecera con timestamp "Validado:"', () => {
+      const headerLine = 'ACIDO URICO Validado: 05/08/2022 04:12 PM';
+      const result = parseLineForBiomarker(headerLine);
+      expect(result).toBeNull();
+    });
+
+    test('Ignora cabecera de glucosa con timestamp', () => {
+      const headerLine = 'GLUCOSA (suero, LCR, otros fluidos) Validado: 05/08/2022 03:13 PM';
+      const result = parseLineForBiomarker(headerLine);
+      expect(result).toBeNull();
+    });
+
+    test('Extrae valor correcto de línea de resultado (no cabecera)', () => {
+      const resultLine = 'ACIDO URICO EN SUERO 5.40 M: 2.5 - 6.2 H: 3.7 - 7.7 mg/dL';
+      const result = parseLineForBiomarker(resultLine);
+      expect(result).not.toBeNull();
+      expect(result?.biomarker).toBe('URIC_ACID');
+      expect(result?.value).toBe(5.40);
+    });
+
+    test('Extrae glucosa correctamente de línea resultado', () => {
+      const resultLine = 'GLUCOSA 92.0 74 100 mg/dL';
+      const result = parseLineForBiomarker(resultLine);
+      expect(result).not.toBeNull();
+      expect(result?.biomarker).toBe('FASTING_GLUCOSE');
+      expect(result?.value).toBe(92.0);
+    });
+
+    test('Extrae PCR correctamente de línea resultado', () => {
+      const resultLine = 'PROTEÍNA C REACTIVA 0.40 0 5 mg/L';
+      const result = parseLineForBiomarker(resultLine);
+      expect(result).not.toBeNull();
+      expect(result?.biomarker).toBe('CRP_STANDARD');
+      expect(result?.value).toBe(0.40);
+    });
+
+    test('No detecta HbA1c en nota de referencia con HbA1C', () => {
+      const referenceLine = '* Criterio según ADA y OMS para diagnóstico de Diabetes incluye niveles de HbA1C > o igual a 6.5%';
+      const result = parseLineForBiomarker(referenceLine);
+      // Si lo detecta, no debe tomar ni 1 (del alias) ni 6.5 (umbral)
+      if (result !== null) {
+        expect(result.value).toBeNull();
+      }
+    });
+  });
+
+  // ==============================================
+  // CASO 11: Nivel de confianza
   // ==============================================
   describe('Nivel de confianza', () => {
     test('Alta confianza: 1 candidato + unidad', () => {

@@ -13,9 +13,7 @@ import { eventBus, LabResultsIngestedEvent, BiomarkerValueEditedEvent, MonthlyHe
 import { evaluateBiomarkers } from '../services/biomarker-evaluator.service';
 import { calculateHealthScore } from '../services/health-score-calculator.service';
 import { analyzeBiomarkerTrends, analyzeScoreTrend } from '../services/trend-analyzer.service';
-import { selectWeeklyActions } from '../services/weekly-actions.service';
-import { BiomarkerKey, BIOMARKERS, MULTIPLIERS, TRAFFIC_LIGHT_MAP } from '../config/biomarkers.config';
-import { RECOMMENDATION_KEYS, getRiskKey } from '../config/recommendations.config';
+import { BiomarkerKey } from '../config/biomarkers.config';
 import { query as dbQuery, execute } from '../db/postgres';
 
 /**
@@ -109,28 +107,9 @@ async function handleLabResultsIngested(event: LabResultsIngestedEvent): Promise
     const previousScore = null;
     analyzeScoreTrend(scoreResult.score, previousScore);
 
-    // 5. Reset Weekly Action Engine
-    const analyzedBiomarkers = evaluations.map(evaluation => {
-      const config = BIOMARKERS[evaluation.biomarker];
-      const multiplier = MULTIPLIERS[evaluation.status];
-
-      return {
-        biomarker: evaluation.biomarker,
-        value: evaluation.value,
-        unit: evaluation.unit,
-        status: evaluation.status,
-        trafficLight: TRAFFIC_LIGHT_MAP[evaluation.status],
-        weight: config.weight,
-        contribution: config.weight * multiplier,
-        contribution_percentage: 0,
-        riskKey: getRiskKey(evaluation.biomarker, evaluation.status),
-        recommendationKeys: RECOMMENDATION_KEYS[evaluation.biomarker][evaluation.status] || []
-      };
-    });
-
-    await selectWeeklyActions(analyzedBiomarkers, event.userId);
-
-    console.log(`[Event] Health score recalculated: ${scoreResult.score}`);
+    // Las acciones semanales se regeneran en exam.routes.ts después de este evento,
+    // usando el estado global completo de todos los biomarcadores.
+    console.log(`[Event] Biomarkers ingested, score from this exam: ${scoreResult.score}`);
   } catch (error) {
     console.error(`[Event] Error handling LabResultsIngested:`, error);
     throw error;

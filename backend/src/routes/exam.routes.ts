@@ -8,8 +8,10 @@ import { Router, Response } from 'express';
 import multer from 'multer';
 import { authenticateToken, AuthRequest } from '../middleware/auth.middleware';
 import { parsePDF, validatePDF } from '../services/pdf-parser.service';
-import { calculateHealthScoreWithAnalysis } from '../services/scoring-engine.service';
+import { calculateHealthScoreWithAnalysis, BiomarkerValue } from '../services/scoring-engine.service';
 import { selectWeeklyActions } from '../services/weekly-actions.service';
+import { getLatestBiomarkerState } from '../services/biomarker-state.service';
+import { BIOMARKERS } from '../config/biomarkers.config';
 import { saveWeeklyActions } from '../services/weekly-actions-db.service';
 import { eventBus, LabResultsIngestedEvent } from '../events/event-bus';
 import { query as dbQuery, queryOne, execute } from '../db/postgres';
@@ -130,11 +132,26 @@ router.post(
 
       await eventBus.emit(event);
 
-      // Calculate for immediate response
-      const analysis = calculateHealthScoreWithAnalysis(parseResult.biomarkers);
+      // El evento ya guardó los biomarker_result de este examen.
+      // Ahora calculamos desde TODOS los últimos valores conocidos por biomarcador.
+      // Regla: si el examen 2 tiene 6 biomarcadores, el score incluye
+      // esos 6 + los valores anteriores de los otros 5.
+      const allBiomarkerStates = await getLatestBiomarkerState(req.userId!);
+      const latestValues: BiomarkerValue[] = allBiomarkerStates
+        .filter(s => s.value !== null)
+        .map(s => ({
+          biomarker: s.biomarker,
+          value: s.value!,
+          unit: s.unit || BIOMARKERS[s.biomarker]?.unit || 'mg/dL'
+        }));
+      const fullAnalysis = calculateHealthScoreWithAnalysis(latestValues);
 
-      // Select weekly actions (max 3) based on biomarker analysis
-      const weeklyActionsResult = await selectWeeklyActions(analysis.biomarkers, req.userId!);
+      // Para la respuesta al frontend mostramos solo los biomarcadores de ESTE examen
+      // (el usuario ve qué se extrajo del PDF). El score y acciones son del estado global.
+      const examAnalysis = calculateHealthScoreWithAnalysis(parseResult.biomarkers);
+
+      // Select weekly actions based on the FULL state (not just this exam)
+      const weeklyActionsResult = await selectWeeklyActions(fullAnalysis.biomarkers, req.userId!);
 
       // Save weekly actions to database
       const savedActions = await saveWeeklyActions(
@@ -151,11 +168,11 @@ router.post(
         }))
       );
 
-      // Update exam with health score
+      // Update exam with health score (score del estado global, no solo este examen)
       try {
         await execute(
           `UPDATE exams SET "healthScore" = $1 WHERE "examId" = $2`,
-          [analysis.totalScore, examId]
+          [fullAnalysis.totalScore, examId]
         );
         console.log('✅ Health score actualizado en PostgreSQL:', {
           examId,
@@ -169,14 +186,15 @@ router.post(
         examId,
         userId: req.userId,
         examDate: examDate.toISOString().split('T')[0],
-        healthScore: analysis.totalScore,
+        healthScore: fullAnalysis.totalScore,
         parsedBiomarkers: (parseResult.parsedBiomarkers || []).map(p => ({
           biomarker: p.biomarker,
           value: p.value,
           unit: p.unit,
           confidence: p.confidence
         })),
-        biomarkers: analysis.biomarkers.map(b => ({
+        // Solo los biomarcadores de ESTE examen (para la pantalla de revisión del PDF)
+        biomarkers: examAnalysis.biomarkers.map(b => ({
           biomarker: b.biomarker,
           value: b.value,
           unit: b.unit,
@@ -188,7 +206,7 @@ router.post(
           riskKey: b.riskKey,
           recommendationKeys: b.recommendationKeys
         })),
-        priorities: analysis.priorities,
+        priorities: fullAnalysis.priorities,
         weekly_actions: savedActions.map(action => ({
           id: action.id,
           action_id: action.action_id,

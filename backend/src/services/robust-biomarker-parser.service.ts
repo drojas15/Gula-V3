@@ -143,12 +143,16 @@ function isNumberPartOfRange(candidate: NumberCandidate, line: string): boolean 
 }
 
 /**
- * Filtra candidatos que son parte de fechas o rangos.
+ * Filtra candidatos que son parte de fechas, rangos, o están dentro del alias.
  * IMPORTANT: `line` must be the SAME string from which positions were extracted
  * (i.e. the normalized string). Using rawLine here would cause position drift
  * due to whitespace collapsing in normalizeLineText.
  */
-function filterInvalidCandidates(candidates: NumberCandidate[], line: string): NumberCandidate[] {
+function filterInvalidCandidates(
+  candidates: NumberCandidate[],
+  line: string,
+  aliasRange?: { start: number; end: number }
+): NumberCandidate[] {
   return candidates.filter(candidate => {
     // Verificar si este número específico es parte de una fecha
     if (isNumberPartOfDate(candidate, line)) {
@@ -162,6 +166,14 @@ function filterInvalidCandidates(candidates: NumberCandidate[], line: string): N
       return false;
     }
 
+    // Ignorar dígitos embebidos dentro del texto del alias (ej: "1" en "hba1c")
+    if (aliasRange && aliasRange.end > aliasRange.start) {
+      if (candidate.position >= aliasRange.start && candidate.position < aliasRange.end) {
+        console.log(`  [Parser] Ignorando ${candidate.value} (dentro del alias): "${candidate.context}"`);
+        return false;
+      }
+    }
+
     // Verificar si está precedido por palabras clave de referencia
     const contextBefore = line.substring(Math.max(0, candidate.position - 20), candidate.position).toLowerCase();
     const refKeywords = ['ref', 'vr', 'rango', 'referencia', 'reference', 'range', 'valores de referencia'];
@@ -171,6 +183,12 @@ function filterInvalidCandidates(candidates: NumberCandidate[], line: string): N
         console.log(`  [Parser] Ignorando ${candidate.value} (precedido por '${keyword}'): "${candidate.context}"`);
         return false;
       }
+    }
+
+    // Ignorar umbrales de referencia precedidos por operadores de comparación
+    if (/[><]/.test(contextBefore) || contextBefore.includes('igual a') || contextBefore.includes('mayor de') || contextBefore.includes('menor de')) {
+      console.log(`  [Parser] Ignorando ${candidate.value} (umbral de referencia): "${candidate.context}"`);
+      return false;
     }
 
     return true;
@@ -203,31 +221,29 @@ function extractUnit(line: string): string | null {
 }
 
 /**
- * Encuentra la posición aproximada del alias en el texto normalizado
+ * Encuentra el rango del alias en el texto normalizado
+ * Devuelve { start, end } donde end es la posición después del último char del alias
  */
-function findAliasPosition(normalizedLine: string, biomarkerKey: BiomarkerKey): number {
-  // Usar el servicio de aliases para obtener las variantes
+function findAliasRange(normalizedLine: string, biomarkerKey: BiomarkerKey): { start: number; end: number } {
   const { BIOMARKER_ALIASES } = require('./biomarker-alias.service');
-  
-  // Encontrar qué canonical corresponde
+
   for (const [canonical, aliases] of Object.entries(BIOMARKER_ALIASES)) {
     const mappedKey = mapCanonicalToBiomarkerKey(canonical as any);
     if (mappedKey === biomarkerKey) {
-      // Buscar cualquier alias en la línea
       for (const alias of aliases as string[]) {
         const normalizedAlias = alias.toLowerCase()
           .normalize('NFD')
           .replace(/[\u0300-\u036f]/g, '');
-        
+
         const position = normalizedLine.indexOf(normalizedAlias);
         if (position !== -1) {
-          return position + normalizedAlias.length; // Fin del alias
+          return { start: position, end: position + normalizedAlias.length };
         }
       }
     }
   }
-  
-  return 0; // Si no encontramos, asumir inicio
+
+  return { start: 0, end: 0 };
 }
 
 /**
@@ -279,17 +295,23 @@ function determineConfidence(
  * 
  * Proceso:
  * 1. Normalizar línea
- * 2. Detectar si contiene alias de biomarcador
- * 3. Si NO → retornar null
- * 4. Si SÍ → extraer todos los números
- * 5. Filtrar números inválidos (fechas, rangos, refs)
- * 6. Seleccionar número más cercano al alias
- * 7. Extraer unidad
- * 8. Devolver resultado con nivel de confianza
+ * 2. Saltar líneas de cabecera con "validado" (timestamps de validación de SURA)
+ * 3. Detectar si contiene alias de biomarcador
+ * 4. Si NO → retornar null
+ * 5. Si SÍ → extraer todos los números
+ * 6. Filtrar números inválidos (dentro del alias, fechas, rangos, refs, umbrales)
+ * 7. Seleccionar número más cercano al alias
+ * 8. Extraer unidad
+ * 9. Devolver resultado con nivel de confianza
  */
 export function parseLineForBiomarker(rawLine: string): ParsedBiomarker | null {
   const normalized = normalizeLineText(rawLine);
-  
+
+  // Saltar líneas de cabecera con timestamp de validación (ej: "ACIDO URICO Validado: 05/08/2022 04:12 PM")
+  if (normalized.includes('validado')) {
+    return null;
+  }
+
   // 1. Detectar biomarcador
   const canonical = findCanonicalBiomarker(normalized);
   
@@ -310,12 +332,16 @@ export function parseLineForBiomarker(rawLine: string): ParsedBiomarker | null {
   // 2. Extraer todos los números
   const allNumbers = extractAllNumbers(normalized);
   console.log(`[Parser] Números encontrados: [${allNumbers.map(n => n.value).join(', ')}]`);
-  
-  // 3. Filtrar candidatos inválidos (usar normalized para que las posiciones coincidan)
-  const validCandidates = filterInvalidCandidates(allNumbers, normalized);
+
+  // 3. Obtener rango del alias para filtrar dígitos embebidos
+  const aliasRange = findAliasRange(normalized, biomarkerKey);
+  console.log(`[Parser] Rango del alias: [${aliasRange.start}, ${aliasRange.end}]`);
+
+  // 4. Filtrar candidatos inválidos (usar normalized para que las posiciones coincidan)
+  const validCandidates = filterInvalidCandidates(allNumbers, normalized, aliasRange);
   console.log(`[Parser] Candidatos válidos: [${validCandidates.map(n => n.value).join(', ')}]`);
-  
-  // 4. Si no hay candidatos válidos, devolver null
+
+  // 5. Si no hay candidatos válidos, devolver null
   if (validCandidates.length === 0) {
     console.log(`[Parser] No hay candidatos válidos para ${biomarkerKey}`);
     return {
@@ -326,14 +352,14 @@ export function parseLineForBiomarker(rawLine: string): ParsedBiomarker | null {
       confidence: 'none'
     };
   }
-  
-  // 5. Encontrar posición del alias
-  const aliasPosition = findAliasPosition(normalized, biomarkerKey);
+
+  // 6. La posición del alias es su fin (los valores vienen después)
+  const aliasPosition = aliasRange.end;
   console.log(`[Parser] Posición del alias: ${aliasPosition}`);
   
-  // 6. Seleccionar el más cercano
+  // 7. Seleccionar el más cercano
   const selected = selectClosestValue(validCandidates, aliasPosition);
-  
+
   if (!selected) {
     return {
       biomarker: biomarkerKey,
@@ -343,11 +369,11 @@ export function parseLineForBiomarker(rawLine: string): ParsedBiomarker | null {
       confidence: 'none'
     };
   }
-  
-  // 7. Extraer unidad
+
+  // 8. Extraer unidad
   const unit = extractUnit(rawLine);
-  
-  // 8. Determinar confianza
+
+  // 9. Determinar confianza
   const confidence = determineConfidence(selected.value, validCandidates.length, unit !== null);
   
   console.log(`[Parser] ✓ Valor final: ${selected.value} ${unit || '(sin unidad)'} [confianza: ${confidence}]`);

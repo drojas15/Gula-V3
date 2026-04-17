@@ -197,71 +197,41 @@ export async function selectWeeklyActions(
   }];
 
   const usedActionIds = new Set([primaryAction.action_id]);
-  const usedCategories = new Set([primaryAction.category]);
-  const usedBiomarkers = new Set([primaryBiomarker.biomarker]);
 
-  // Select up to 2 secondary actions
-  // Strategy: Try to cover different biomarkers and categories
+  // Seleccionar hasta 2 acciones secundarias siguiendo estrictamente el orden
+  // de prioridad (CRITICAL > OUT_OF_RANGE > GOOD, luego por peso).
+  // No se filtra por categoría ni diversidad — el orden ya garantiza que
+  // los biomarcadores más importantes ocupan los primeros slots.
   for (let i = 1; i < sortedBiomarkers.length && selectedActions.length < 3; i++) {
     const biomarker = sortedBiomarkers[i];
     const candidateActions = getActionsByBiomarker(biomarker.biomarker);
 
-    // Filter candidates
-    const validCandidates = candidateActions.filter(action => {
-      // Skip if already used
-      if (usedActionIds.has(action.action_id)) return false;
-      
-      // Skip if completed in last 14 days
-      if (completedActionIdsInLast14Days.includes(action.action_id)) return false;
-      
-      // Prefer actions that:
-      // 1. Impact different biomarkers, OR
-      // 2. Support same biomarker but different category
-      const impactsDifferentBiomarker = !usedBiomarkers.has(biomarker.biomarker);
-      const differentCategory = !usedCategories.has(action.category);
-      
-      return impactsDifferentBiomarker || differentCategory;
-    });
+    const firstValid = candidateActions.find(action =>
+      !usedActionIds.has(action.action_id) &&
+      !completedActionIdsInLast14Days.includes(action.action_id)
+    );
 
-    if (validCandidates.length > 0) {
-      // Prefer actions that impact multiple biomarkers or different category
-      const bestCandidate = validCandidates.sort((a, b) => {
-        // Prefer different category
-        const aDiffCategory = !usedCategories.has(a.category) ? 1 : 0;
-        const bDiffCategory = !usedCategories.has(b.category) ? 1 : 0;
-        if (aDiffCategory !== bDiffCategory) return bDiffCategory - aDiffCategory;
-        
-        // Prefer actions impacting more biomarkers
-        return b.impacted_biomarkers.length - a.impacted_biomarkers.length;
-      })[0];
-
+    if (firstValid) {
       selectedActions.push({
-        ...bestCandidate,
+        ...firstValid,
         progress: 0,
         completion_state: 'PENDING',
         week_start: weekStart,
         week_end: weekEnd
       });
-
-      usedActionIds.add(bestCandidate.action_id);
-      usedCategories.add(bestCandidate.category);
-      bestCandidate.impacted_biomarkers.forEach(b => usedBiomarkers.add(b));
+      usedActionIds.add(firstValid.action_id);
     }
   }
 
-  // If we still have slots, try to get actions from primary biomarker with different categories
+  // Si quedan slots libres, completar con más acciones del biomarcador primario
   if (selectedActions.length < 3) {
-    const primaryBiomarkerSecondaryActions = primaryBiomarkerActions.filter(action => {
-      if (usedActionIds.has(action.action_id)) return false;
-      if (completedActionIdsInLast14Days.includes(action.action_id)) return false;
-      if (usedCategories.has(action.category)) return false;
-      return true;
-    });
-
-    if (primaryBiomarkerSecondaryActions.length > 0) {
-      const secondaryAction = primaryBiomarkerSecondaryActions[0];
+    const extraPrimary = primaryBiomarkerActions.find(action =>
+      !usedActionIds.has(action.action_id) &&
+      !completedActionIdsInLast14Days.includes(action.action_id)
+    );
+    if (extraPrimary) {
       selectedActions.push({
-        ...secondaryAction,
+        ...extraPrimary,
         progress: 0,
         completion_state: 'PENDING',
         week_start: weekStart,
