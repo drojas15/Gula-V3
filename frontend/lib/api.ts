@@ -165,8 +165,12 @@ export const userAPI = {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to reset data');
+      const contentType = response.headers.get('content-type');
+      if (contentType?.includes('application/json')) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to reset data');
+      }
+      throw new Error(`Error ${response.status}: el backend aún no está disponible. Esperá unos minutos y volvé a intentar.`);
     }
 
     return response.json();

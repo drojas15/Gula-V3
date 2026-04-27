@@ -63,6 +63,7 @@ export default function UploadPage() {
   const [resetConfirm, setResetConfirm] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   const [resetSuccess, setResetSuccess] = useState<string | null>(null);
+  const [resetError, setResetError] = useState<string | null>(null);
 
   const handleReset = async () => {
     if (!resetConfirm) {
@@ -72,13 +73,14 @@ export default function UploadPage() {
     try {
       setResetLoading(true);
       setResetSuccess(null);
+      setResetError(null);
       const result = await userAPI.resetData();
       setResetConfirm(false);
       setResetSuccess(
         `Datos eliminados: ${result.deleted.exams} examen(es), ${result.deleted.biomarkers} biomarcador(es), ${result.deleted.weekly_actions} acción(es) semanal(es).`
       );
     } catch (err: any) {
-      setError(err.message || 'Error al resetear los datos');
+      setResetError(err.message || 'Error al resetear los datos');
       setResetConfirm(false);
     } finally {
       setResetLoading(false);
@@ -276,6 +278,12 @@ export default function UploadPage() {
             {resetSuccess && (
               <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg">
                 <p className="text-sm text-green-700">{resetSuccess}</p>
+              </div>
+            )}
+
+            {resetError && (
+              <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600">{resetError}</p>
               </div>
             )}
 
