@@ -23,7 +23,7 @@ interface BiomarkersListCardProps {
   hasBaseline?: boolean;
 }
 
-export default function BiomarkersListCard({ biomarkers, hasBaseline = false }: BiomarkersListCardProps) {
+export default function BiomarkersListCard({ biomarkers }: BiomarkersListCardProps) {
   const [selectedBiomarker, setSelectedBiomarker] = useState<Biomarker | null>(null);
 
   const getStatusLabel = (status: string): string => {
