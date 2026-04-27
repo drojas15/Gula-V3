@@ -12,7 +12,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { examAPI } from '@/lib/api';
+import { examAPI, userAPI } from '@/lib/api';
 import { t } from '@/lib/i18n';
 
 // Los 11 biomarcadores que GULA rastrea
@@ -60,6 +60,30 @@ export default function UploadPage() {
   const [step, setStep] = useState<'upload' | 'preview' | 'saving'>('upload');
   const [parsedPreview, setParsedPreview] = useState<ParsePreview | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [resetConfirm, setResetConfirm] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState<string | null>(null);
+
+  const handleReset = async () => {
+    if (!resetConfirm) {
+      setResetConfirm(true);
+      return;
+    }
+    try {
+      setResetLoading(true);
+      setResetSuccess(null);
+      const result = await userAPI.resetData();
+      setResetConfirm(false);
+      setResetSuccess(
+        `Datos eliminados: ${result.deleted.exams} examen(es), ${result.deleted.biomarkers} biomarcador(es), ${result.deleted.weekly_actions} acción(es) semanal(es).`
+      );
+    } catch (err: any) {
+      setError(err.message || 'Error al resetear los datos');
+      setResetConfirm(false);
+    } finally {
+      setResetLoading(false);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -243,6 +267,48 @@ export default function UploadPage() {
             >
               Subir y Analizar
             </button>
+          </div>
+
+          {/* Zona peligrosa: borrar todos los datos */}
+          <div className="mt-8 border-t border-gray-200 pt-6">
+            <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-3">Zona peligrosa</p>
+
+            {resetSuccess && (
+              <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-sm text-green-700">{resetSuccess}</p>
+              </div>
+            )}
+
+            {resetConfirm ? (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-700 font-medium mb-3">
+                  Esto borrará todos tus exámenes, biomarcadores y acciones semanales. Tu cuenta no se elimina. ¿Continuar?
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleReset}
+                    disabled={resetLoading}
+                    className="flex-1 px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 disabled:opacity-50 transition"
+                  >
+                    {resetLoading ? 'Borrando...' : 'Sí, borrar todo'}
+                  </button>
+                  <button
+                    onClick={() => setResetConfirm(false)}
+                    disabled={resetLoading}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={handleReset}
+                className="w-full px-4 py-2 border border-red-300 text-red-600 text-sm rounded-lg hover:bg-red-50 transition"
+              >
+                Borrar todos mis datos y empezar de cero
+              </button>
+            )}
           </div>
         </div>
       </div>

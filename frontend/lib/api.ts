@@ -154,6 +154,23 @@ export const userAPI = {
 
     return response.json();
   },
+
+  resetData: async (): Promise<{ message: string; deleted: { exams: number; biomarkers: number; weekly_actions: number } }> => {
+    const response = await fetch(`${API_BASE_URL}/users/me/reset`, {
+      method: 'DELETE',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to reset data');
+    }
+
+    return response.json();
+  },
 };
 
 // ============================================
