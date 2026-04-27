@@ -231,17 +231,15 @@ function extractValueFromScanLine(scanLine: string, _biomarkerLabel: string): { 
  */
 function isValidValue(biomarker: BiomarkerKey, value: number): boolean {
   const validations: Record<BiomarkerKey, { min: number; max: number }> = {
-    LDL: { min: 0, max: 500 },
-    HBA1C: { min: 0, max: 20 },
-    FASTING_GLUCOSE: { min: 0, max: 500 },
-    TRIGLYCERIDES: { min: 0, max: 1000 },
-    ALT: { min: 0, max: 1000 },
-    HS_CRP: { min: 0, max: 100 },
-    HDL: { min: 0, max: 200 },
-    AST: { min: 0, max: 1000 },
-    EGFR: { min: 0, max: 200 },
-    URIC_ACID: { min: 0, max: 20 },
-    CRP_STANDARD: { min: 0, max: 500 }
+    LDL:             { min: 0, max: 500  },
+    FASTING_GLUCOSE: { min: 0, max: 500  },
+    TRIGLYCERIDES:   { min: 0, max: 1000 },
+    VLDL:            { min: 0, max: 200  },
+    HDL:             { min: 0, max: 200  },
+    ALT:             { min: 0, max: 1000 },
+    AST:             { min: 0, max: 1000 },
+    URIC_ACID:       { min: 0, max: 20   },
+    HS_CRP:          { min: 0, max: 100  },
   };
 
   const validation = validations[biomarker];

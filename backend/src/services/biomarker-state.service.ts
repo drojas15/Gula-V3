@@ -40,16 +40,14 @@ export interface BiomarkerState {
 export async function getLatestBiomarkerState(userId: string): Promise<BiomarkerState[]> {
   const allBiomarkers: BiomarkerKey[] = [
     'LDL',
-    'TRIGLYCERIDES',
-    'HDL',
     'FASTING_GLUCOSE',
-    'HBA1C',
+    'TRIGLYCERIDES',
+    'VLDL',
+    'HDL',
     'ALT',
     'AST',
+    'URIC_ACID',
     'HS_CRP',
-    'CRP_STANDARD',
-    'EGFR',
-    'URIC_ACID'
   ];
 
   const states: BiomarkerState[] = [];
@@ -172,16 +170,14 @@ export interface ReliabilityData {
 export function calculateReliability(biomarkerStates: BiomarkerState[]): ReliabilityData {
   const allBiomarkers: BiomarkerKey[] = [
     'LDL',
-    'TRIGLYCERIDES',
-    'HDL',
     'FASTING_GLUCOSE',
-    'HBA1C',
+    'TRIGLYCERIDES',
+    'VLDL',
+    'HDL',
     'ALT',
     'AST',
+    'URIC_ACID',
     'HS_CRP',
-    'CRP_STANDARD',
-    'EGFR',
-    'URIC_ACID'
   ];
 
   let totalWeight = 0;

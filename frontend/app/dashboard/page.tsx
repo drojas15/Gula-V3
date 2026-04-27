@@ -18,7 +18,6 @@ import Link from 'next/link';
 import { dashboardAPI, examAPI, DashboardData } from '@/lib/api';
 import HealthScoreCard from '@/components/HealthScoreCard';
 import ReliabilityBar from '@/components/ReliabilityBar';
-import WeeklyActionsCard from '@/components/WeeklyActionsCard';
 import BiomarkersListCard from '@/components/BiomarkersListCard';
 import OnboardingTooltips, { useOnboarding } from '@/components/OnboardingTooltips';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -236,12 +235,7 @@ function DashboardContent() {
               />
             )}
 
-            {/* 3. Acciones de esta semana (máx 3) */}
-            {dashboardData.weekly_actions && dashboardData.weekly_actions.length > 0 && (
-              <WeeklyActionsCard actions={dashboardData.weekly_actions} />
-            )}
-
-            {/* 4. Biomarcadores (detalle) */}
+            {/* 3. Biomarcadores (detalle) */}
             {dashboardData.biomarkers && dashboardData.biomarkers.length > 0 && (
               <BiomarkersListCard 
                 biomarkers={dashboardData.biomarkers}

@@ -9,10 +9,8 @@ import multer from 'multer';
 import { authenticateToken, AuthRequest } from '../middleware/auth.middleware';
 import { parsePDF, validatePDF } from '../services/pdf-parser.service';
 import { calculateHealthScoreWithAnalysis, BiomarkerValue } from '../services/scoring-engine.service';
-import { selectWeeklyActions } from '../services/weekly-actions.service';
 import { getLatestBiomarkerState } from '../services/biomarker-state.service';
 import { BIOMARKERS } from '../config/biomarkers.config';
-import { saveWeeklyActions } from '../services/weekly-actions-db.service';
 import { eventBus, LabResultsIngestedEvent } from '../events/event-bus';
 import { query as dbQuery, queryOne, execute } from '../db/postgres';
 
@@ -132,6 +130,13 @@ router.post(
 
       await eventBus.emit(event);
 
+      // Fetch user sex for sex-specific reference ranges
+      const userRow = await queryOne<{ sex: string | null }>(
+        `SELECT sex FROM users WHERE id = $1`,
+        [req.userId!]
+      );
+      const userSex = (userRow?.sex === 'F' ? 'F' : 'M') as 'M' | 'F';
+
       // El evento ya guardó los biomarker_result de este examen.
       // Ahora calculamos desde TODOS los últimos valores conocidos por biomarcador.
       // Regla: si el examen 2 tiene 6 biomarcadores, el score incluye
@@ -144,29 +149,11 @@ router.post(
           value: s.value!,
           unit: s.unit || BIOMARKERS[s.biomarker]?.unit || 'mg/dL'
         }));
-      const fullAnalysis = calculateHealthScoreWithAnalysis(latestValues);
+      const fullAnalysis = calculateHealthScoreWithAnalysis(latestValues, userSex);
 
       // Para la respuesta al frontend mostramos solo los biomarcadores de ESTE examen
-      // (el usuario ve qué se extrajo del PDF). El score y acciones son del estado global.
-      const examAnalysis = calculateHealthScoreWithAnalysis(parseResult.biomarkers);
-
-      // Select weekly actions based on the FULL state (not just this exam)
-      const weeklyActionsResult = await selectWeeklyActions(fullAnalysis.biomarkers, req.userId!);
-
-      // Save weekly actions to database
-      const savedActions = await saveWeeklyActions(
-        weeklyActionsResult.actions.map(action => ({
-          user_id: req.userId!,
-          action_id: action.action_id,
-          category: action.category,
-          weekly_target: action.weekly_target,
-          success_metric: action.success_metric,
-          impacted_biomarkers: action.impacted_biomarkers,
-          difficulty: action.difficulty,
-          week_start: new Date(action.week_start),
-          week_end: new Date(action.week_end)
-        }))
-      );
+      // (el usuario ve qué se extrajo del PDF). El score es del estado global.
+      const examAnalysis = calculateHealthScoreWithAnalysis(parseResult.biomarkers, userSex);
 
       // Update exam with health score (score del estado global, no solo este examen)
       try {
@@ -207,22 +194,6 @@ router.post(
           recommendationKeys: b.recommendationKeys
         })),
         priorities: fullAnalysis.priorities,
-        weekly_actions: savedActions.map(action => ({
-          id: action.id,
-          action_id: action.action_id,
-          category: action.category,
-          weekly_target: action.weekly_target,
-          success_metric: action.success_metric,
-          impacted_biomarkers: action.impacted_biomarkers,
-          difficulty: action.difficulty,
-          progress: action.progress,
-          completion_state: action.completion_state,
-          week_start: action.week_start.toISOString().split('T')[0],
-          week_end: action.week_end.toISOString().split('T')[0]
-        })),
-        primary_biomarker: weeklyActionsResult.primary_biomarker,
-        week_start: weeklyActionsResult.week_start,
-        week_end: weeklyActionsResult.week_end
       });
     } catch (error: any) {
       console.error('Error processing exam:', error);

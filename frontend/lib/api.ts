@@ -269,15 +269,6 @@ export interface DashboardData {
     previous_value?: number | null;
     previous_measured_at?: string | null;
   }>;
-  weekly_actions: Array<{
-    weekly_action_id: string;
-    title: string;
-    category: string;
-    weekly_target: string;
-    progress: number;
-    completion_state: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
-    impacted_biomarkers: string[];
-  }>;
   hasBaseline?: boolean;
   baselineDate?: string | null;
   reliability?: {

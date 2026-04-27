@@ -8,9 +8,8 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { calculateHealthScoreWithAnalysis, BiomarkerValue } from '../services/scoring-engine.service';
 import { BIOMARKERS } from '../config/biomarkers.config';
-import { 
+import {
   updateWeeklyActionProgress as updateProgressInDB,
-  getActiveWeeklyActions
 } from '../services/weekly-actions-db.service';
 
 /**
@@ -120,7 +119,17 @@ export async function getDashboard(req: AuthRequest, res: Response): Promise<voi
     }
     
     // ========================================
-    // PASO 4: Calculate health score from ALL latest biomarker states
+    // PASO 4: Fetch user sex for sex-specific reference ranges
+    // ========================================
+    const { queryOne } = await import('../db/postgres');
+    const userRow = await queryOne<{ sex: string | null }>(
+      `SELECT sex FROM users WHERE id = $1`,
+      [req.userId!]
+    );
+    const userSex = (userRow?.sex === 'F' ? 'F' : 'M') as 'M' | 'F';
+
+    // ========================================
+    // PASO 5: Calculate health score from ALL latest biomarker states
     // REGLA: El score siempre refleja todos los valores conocidos,
     // no solo los del último examen. Si el examen 2 tiene 6 biomarcadores,
     // el score incluye esos 6 + los 5 del examen anterior.
@@ -136,36 +145,12 @@ export async function getDashboard(req: AuthRequest, res: Response): Promise<voi
         unit: s.unit || BIOMARKERS[s.biomarker]?.unit || 'mg/dL'
       }));
 
-    const currentAnalysis = calculateHealthScoreWithAnalysis(latestBiomarkerValues);
+    const currentAnalysis = calculateHealthScoreWithAnalysis(latestBiomarkerValues, userSex);
 
     const previousScore = previousExam?.healthScore || null;
 
-    // Get current week's actions
-    const currentWeekActions = await getActiveWeeklyActions(req.userId, new Date());
-
-    // If no actions for current week, generate them
-    let weeklyActions: any[] = currentWeekActions;
-    if (weeklyActions.length === 0) {
-      const { selectWeeklyActions } = await import('../services/weekly-actions.service');
-      const weeklyActionsResult = await selectWeeklyActions(currentAnalysis.biomarkers, req.userId);
-      const { saveWeeklyActions } = await import('../services/weekly-actions-db.service');
-      weeklyActions = await saveWeeklyActions(
-        weeklyActionsResult.actions.map(action => ({
-          user_id: req.userId!,
-          action_id: action.action_id,
-          category: action.category,
-          weekly_target: action.weekly_target,
-          success_metric: action.success_metric,
-          impacted_biomarkers: action.impacted_biomarkers,
-          difficulty: action.difficulty,
-          week_start: new Date(action.week_start),
-          week_end: new Date(action.week_end)
-        }))
-      );
-    }
-
     // ========================================
-    // PASO 5: Build dashboard with userId and exams array
+    // PASO 6: Build dashboard with userId and exams array
     // ========================================
     const { buildDashboardData } = await import('../services/dashboard.service');
     const dashboardData = await buildDashboardData(
@@ -174,7 +159,7 @@ export async function getDashboard(req: AuthRequest, res: Response): Promise<voi
       currentAnalysis.totalScore,
       previousScore,
       null,
-      weeklyActions,
+      [], // weekly_actions removed
       exams // Pass all exams for baseline calculation
     );
 

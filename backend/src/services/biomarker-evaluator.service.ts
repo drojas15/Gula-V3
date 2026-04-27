@@ -5,7 +5,7 @@
  * Pure function - no side effects.
  */
 
-import { BiomarkerKey, Status, RANGES } from '../config/biomarkers.config';
+import { BiomarkerKey, Status, getRangesForSex } from '../config/biomarkers.config';
 
 export interface BiomarkerEvaluation {
   biomarker: BiomarkerKey;
@@ -16,7 +16,7 @@ export interface BiomarkerEvaluation {
 
 /**
  * Evaluates a single biomarker value
- * 
+ *
  * Status resolution:
  * - If value ∈ optimal_range → OPTIMAL
  * - Else if ∈ good_range → GOOD
@@ -26,15 +26,16 @@ export interface BiomarkerEvaluation {
 export function evaluateBiomarker(
   biomarker: BiomarkerKey,
   value: number,
-  unit: string
+  unit: string,
+  sex?: 'M' | 'F'
 ): BiomarkerEvaluation {
-  const ranges = RANGES[biomarker];
-  if (!ranges) {
+  const ranges = getRangesForSex(sex);
+  if (!ranges[biomarker]) {
     throw new Error(`No ranges defined for biomarker: ${biomarker}`);
   }
 
   // Check in order: CRITICAL -> OUT_OF_RANGE -> GOOD -> OPTIMAL
-  const status = determineStatus(biomarker, value);
+  const status = determineStatus(biomarker, value, sex);
 
   return {
     biomarker,
@@ -47,8 +48,8 @@ export function evaluateBiomarker(
 /**
  * Determines status from value and ranges
  */
-function determineStatus(biomarker: BiomarkerKey, value: number): Status {
-  const ranges = RANGES[biomarker];
+function determineStatus(biomarker: BiomarkerKey, value: number, sex?: 'M' | 'F'): Status {
+  const ranges = getRangesForSex(sex)[biomarker];
   
   if (matchesRange(value, ranges.CRITICAL)) {
     return 'CRITICAL';
@@ -97,10 +98,11 @@ function matchesRange(value: number, range?: { min?: number; max?: number }): bo
  * Evaluates multiple biomarkers
  */
 export function evaluateBiomarkers(
-  biomarkerValues: Array<{ biomarker: BiomarkerKey; value: number; unit: string }>
+  biomarkerValues: Array<{ biomarker: BiomarkerKey; value: number; unit: string }>,
+  sex?: 'M' | 'F'
 ): BiomarkerEvaluation[] {
-  return biomarkerValues.map(bv => 
-    evaluateBiomarker(bv.biomarker, bv.value, bv.unit)
+  return biomarkerValues.map(bv =>
+    evaluateBiomarker(bv.biomarker, bv.value, bv.unit, sex)
   );
 }
 

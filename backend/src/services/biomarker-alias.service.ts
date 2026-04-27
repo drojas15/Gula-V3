@@ -184,13 +184,13 @@ export function mapCanonicalToBiomarkerKey(canonical: CanonicalBiomarker): Bioma
     TRIGLYCERIDES: 'TRIGLYCERIDES',
     HDL: 'HDL',
     GLUCOSE_FASTING: 'FASTING_GLUCOSE',
-    HBA1C: 'HBA1C',
+    HBA1C: null,          // Removed from active biomarkers
     ALT: 'ALT',
     AST: 'AST',
-    HS_CRP: 'HS_CRP',              // PCR ultrasensible - entra al score
-    CRP_STANDARD: 'CRP_STANDARD',  // PCR normal - NO entra al score
-    CREATININE: null, // CREATININE is used to calculate eGFR, not stored directly
-    EGFR: 'EGFR',
+    HS_CRP: 'HS_CRP',
+    CRP_STANDARD: null,   // Removed from active biomarkers
+    CREATININE: null,     // Used to calculate eGFR, not stored directly
+    EGFR: null,           // Removed from active biomarkers
     URIC_ACID: 'URIC_ACID'
   };
   

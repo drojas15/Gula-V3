@@ -17,8 +17,6 @@
  *    - Seleccionar acción complementaria
  */
 
-import { BiomarkerKey } from './biomarkers.config';
-
 export type ActionCategory = 'ACTIVITY' | 'NUTRITION' | 'ELIMINATION' | 'RECOVERY';
 export type DifficultyLevel = 'EASY' | 'MEDIUM' | 'HARD';
 export type ActionState = 'ACTIVE' | 'INTERNALIZED' | 'COMPLETED' | 'COOLDOWN';
@@ -26,7 +24,7 @@ export type ActionState = 'ACTIVE' | 'INTERNALIZED' | 'COMPLETED' | 'COOLDOWN';
 export interface ActionDefinition {
   id: string;
   title: string; // i18n key
-  targetBiomarkers: BiomarkerKey[];
+  targetBiomarkers: string[];
   category: ActionCategory;
   isDegradable: boolean; // Si true, puede bajar dificultad HARD → MEDIUM → EASY
   
@@ -693,7 +691,7 @@ export function getNextDifficultyLevel(current: DifficultyLevel): DifficultyLeve
 /**
  * Obtiene acciones complementarias para una acción dada
  */
-export function getComplementaryActions(actionId: string, targetBiomarkers: BiomarkerKey[]): ActionDefinition[] {
+export function getComplementaryActions(actionId: string, targetBiomarkers: string[]): ActionDefinition[] {
   const complementaryIds = COMPLEMENTARY_ACTIONS[actionId] || [];
   
   return complementaryIds
@@ -725,7 +723,7 @@ export function getMainCatalogSize(): number {
 /**
  * Obtiene todas las acciones que impactan un biomarcador específico
  */
-export function getActionsByBiomarker(biomarker: BiomarkerKey): ActionDefinition[] {
+export function getActionsByBiomarker(biomarker: string): ActionDefinition[] {
   return Object.values(MAIN_ACTION_CATALOG).filter(action =>
     action.targetBiomarkers.includes(biomarker)
   );

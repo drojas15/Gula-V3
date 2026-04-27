@@ -38,15 +38,14 @@ export async function getBiomarkerHistory(
     // Validate biomarker
     const validBiomarkers: BiomarkerKey[] = [
       'LDL',
-      'TRIGLYCERIDES',
-      'HDL',
       'FASTING_GLUCOSE',
-      'HBA1C',
+      'TRIGLYCERIDES',
+      'VLDL',
+      'HDL',
       'ALT',
       'AST',
+      'URIC_ACID',
       'HS_CRP',
-      'EGFR',
-      'URIC_ACID'
     ];
 
     if (!validBiomarkers.includes(biomarker as BiomarkerKey)) {
@@ -85,15 +84,14 @@ export async function getAllBiomarkersHistory(
 
     const biomarkers: BiomarkerKey[] = [
       'LDL',
-      'TRIGLYCERIDES',
-      'HDL',
       'FASTING_GLUCOSE',
-      'HBA1C',
+      'TRIGLYCERIDES',
+      'VLDL',
+      'HDL',
       'ALT',
       'AST',
+      'URIC_ACID',
       'HS_CRP',
-      'EGFR',
-      'URIC_ACID'
     ];
 
     // Get history for all biomarkers

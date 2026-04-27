@@ -9,7 +9,7 @@
 
 import {
   BIOMARKERS,
-  RANGES,
+  getRangesForSex,
   MULTIPLIERS,
   TRAFFIC_LIGHT_MAP,
   BiomarkerKey,
@@ -54,8 +54,8 @@ export interface Priority {
 /**
  * Determines the status of a biomarker value based on reference ranges
  */
-export function determineStatus(biomarker: BiomarkerKey, value: number): Status {
-  const ranges = RANGES[biomarker];
+export function determineStatus(biomarker: BiomarkerKey, value: number, sex?: 'M' | 'F'): Status {
+  const ranges = getRangesForSex(sex)[biomarker];
   if (!ranges) {
     throw new Error(`No ranges defined for biomarker: ${biomarker}`);
   }
@@ -130,7 +130,7 @@ function matchesRange(value: number, range?: { min?: number; max?: number }): bo
  * NOTE: For event-driven recalculation, use HealthScoreCalculator service directly.
  * This function is kept for backward compatibility with existing code.
  */
-export function calculateHealthScore(biomarkerValues: BiomarkerValue[]): number {
+export function calculateHealthScore(biomarkerValues: BiomarkerValue[], sex?: 'M' | 'F'): number {
   let scoreRaw = 0;
   let scoreMax = 0;
 
@@ -142,13 +142,12 @@ export function calculateHealthScore(biomarkerValues: BiomarkerValue[]): number 
     }
 
     // Skip biomarkers with weight = 0 (informativos, no afectan score)
-    // Ejemplo: CRP_STANDARD (PCR normal) tiene peso 0
     if (config.weight === 0) {
       console.log(`[Score] Skipping ${biomarkerValue.biomarker} (weight = 0, informativo)`);
       continue;
     }
 
-    const status = determineStatus(biomarkerValue.biomarker, biomarkerValue.value);
+    const status = determineStatus(biomarkerValue.biomarker, biomarkerValue.value, sex);
     const multiplier = MULTIPLIERS[status];
 
     // Accumulate raw score and max possible score
@@ -176,12 +175,13 @@ export function calculateHealthScore(biomarkerValues: BiomarkerValue[]): number 
  * Uses BiomarkerEvaluator service for status determination.
  */
 export function analyzeBiomarker(
-  biomarkerValue: BiomarkerValue
+  biomarkerValue: BiomarkerValue,
+  sex?: 'M' | 'F'
 ): AnalyzedBiomarker {
   const { biomarker, value, unit } = biomarkerValue;
-  
+
   // Use BiomarkerEvaluator service
-  const evaluation = evaluateBiomarker(biomarker, value, unit);
+  const evaluation = evaluateBiomarker(biomarker, value, unit, sex);
   
   const config = BIOMARKERS[biomarker];
   if (!config) {
@@ -223,11 +223,12 @@ export function analyzeBiomarker(
  * Final score: 0-100, deterministic, no magic, no opaque AI.
  */
 export function calculateHealthScoreWithAnalysis(
-  biomarkerValues: BiomarkerValue[]
+  biomarkerValues: BiomarkerValue[],
+  sex?: 'M' | 'F'
 ): HealthScoreResult {
   // Analyze each biomarker
-  const analyzedBiomarkers = biomarkerValues.map(bv => analyzeBiomarker(bv));
-  const totalScore = calculateHealthScore(biomarkerValues);
+  const analyzedBiomarkers = biomarkerValues.map(bv => analyzeBiomarker(bv, sex));
+  const totalScore = calculateHealthScore(biomarkerValues, sex);
   const priorities = determinePriorities(analyzedBiomarkers);
 
   return {

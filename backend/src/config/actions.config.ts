@@ -7,8 +7,6 @@
  * IMPORTANT: Backend returns only keys and structured data - no human-readable text
  */
 
-import { BiomarkerKey } from './biomarkers.config';
-
 export type ActionCategory = 'ACTIVITY' | 'NUTRITION' | 'ELIMINATION' | 'RECOVERY';
 export type DifficultyLevel = 'LOW' | 'MEDIUM' | 'HIGH';
 export type CompletionState = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
@@ -18,7 +16,7 @@ export interface WeeklyAction {
   category: ActionCategory;
   weekly_target: string; // e.g., "150_minutes", "5_days", "0_servings"
   success_metric: string; // e.g., "minutes_completed", "days_completed", "servings_eliminated"
-  impacted_biomarkers: BiomarkerKey[];
+  impacted_biomarkers: string[];
   difficulty: DifficultyLevel;
 }
 
@@ -765,7 +763,7 @@ export function getActionsByCategory(category: ActionCategory): WeeklyAction[] {
 /**
  * Gets all actions that impact a specific biomarker
  */
-export function getActionsByBiomarker(biomarker: BiomarkerKey): WeeklyAction[] {
+export function getActionsByBiomarker(biomarker: string): WeeklyAction[] {
   return Object.values(ACTION_DEFINITIONS).filter(action =>
     action.impacted_biomarkers.includes(biomarker)
   );

@@ -25,12 +25,6 @@ export const RECOMMENDATION_KEYS: RecommendationKeys = {
     OUT_OF_RANGE: ['ldl.reduce_saturated_fat', 'ldl.increase_fiber', 'ldl.add_cardio'],
     CRITICAL: ['ldl.eliminate_trans_fats', 'ldl.daily_cardio', 'ldl.reduce_saturated_fat']
   },
-  HBA1C: {
-    OPTIMAL: ['hba1c.maintain_diet', 'hba1c.keep_exercise'],
-    GOOD: ['hba1c.reduce_sugar', 'hba1c.increase_fiber'],
-    OUT_OF_RANGE: ['hba1c.reduce_sugar', 'hba1c.increase_fiber', 'hba1c.add_cardio'],
-    CRITICAL: ['hba1c.eliminate_refined_sugar', 'hba1c.daily_cardio', 'hba1c.reduce_sugar']
-  },
   FASTING_GLUCOSE: {
     OPTIMAL: ['glucose.maintain_diet', 'glucose.keep_exercise'],
     GOOD: ['glucose.reduce_sugar', 'glucose.increase_fiber'],
@@ -42,6 +36,12 @@ export const RECOMMENDATION_KEYS: RecommendationKeys = {
     GOOD: ['triglycerides.reduce_sugar', 'triglycerides.increase_fiber'],
     OUT_OF_RANGE: ['triglycerides.reduce_sugar', 'triglycerides.increase_fiber', 'triglycerides.add_cardio'],
     CRITICAL: ['triglycerides.urgent_medical_consult', 'triglycerides.eliminate_refined_sugar', 'triglycerides.daily_cardio']
+  },
+  VLDL: {
+    OPTIMAL: ['vldl.maintain_diet', 'vldl.keep_exercise'],
+    GOOD: ['vldl.reduce_sugar', 'vldl.increase_fiber'],
+    OUT_OF_RANGE: ['vldl.reduce_sugar', 'vldl.increase_fiber', 'vldl.add_cardio'],
+    CRITICAL: ['vldl.urgent_medical_consult', 'vldl.eliminate_refined_sugar', 'vldl.daily_cardio']
   },
   ALT: {
     OPTIMAL: ['alt.maintain_diet', 'alt.keep_exercise'],
@@ -55,15 +55,6 @@ export const RECOMMENDATION_KEYS: RecommendationKeys = {
     OUT_OF_RANGE: ['crp.reduce_inflammation', 'crp.increase_omega3', 'crp.add_cardio'],
     CRITICAL: ['crp.eliminate_processed_foods', 'crp.daily_cardio', 'crp.reduce_inflammation']
   },
-  // CRP_STANDARD: PCR normal (informativo solo)
-  // NO genera acciones ni recomendaciones activas
-  // Rangos diferentes a HS_CRP
-  CRP_STANDARD: {
-    OPTIMAL: [], // Sin recomendaciones (informativo)
-    GOOD: [], // Sin recomendaciones (informativo)
-    OUT_OF_RANGE: [], // Sin recomendaciones (informativo)
-    CRITICAL: [] // Sin recomendaciones (informativo - podría alertar consultar médico)
-  },
   HDL: {
     OPTIMAL: ['hdl.maintain_diet', 'hdl.keep_exercise'],
     GOOD: ['hdl.increase_healthy_fats', 'hdl.add_cardio'],
@@ -75,12 +66,6 @@ export const RECOMMENDATION_KEYS: RecommendationKeys = {
     GOOD: ['ast.reduce_alcohol', 'ast.increase_water'],
     OUT_OF_RANGE: ['ast.reduce_alcohol', 'ast.increase_water', 'ast.add_cardio'],
     CRITICAL: ['ast.eliminate_alcohol', 'ast.daily_cardio', 'ast.increase_water']
-  },
-  EGFR: {
-    OPTIMAL: ['egfr.maintain_diet', 'egfr.keep_exercise'],
-    GOOD: ['egfr.increase_water', 'egfr.reduce_sodium'],
-    OUT_OF_RANGE: ['egfr.increase_water', 'egfr.reduce_sodium', 'egfr.add_cardio'],
-    CRITICAL: ['egfr.increase_water', 'egfr.reduce_sodium', 'egfr.add_cardio']
   },
   URIC_ACID: {
     OPTIMAL: ['uric_acid.maintain_diet', 'uric_acid.keep_exercise'],

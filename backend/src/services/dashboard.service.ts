@@ -13,7 +13,6 @@
 
 import { AnalyzedBiomarker } from './scoring-engine.service';
 import { BiomarkerKey, Status } from '../config/biomarkers.config';
-import { WeeklyActionInstance } from '../models/WeeklyActionInstance.model';
 
 export type TrendDirection = 'UP' | 'STABLE' | 'DOWN' | 'NONE';
 export type BiomarkerTrendDirection = 'IMPROVING' | 'STABLE' | 'WORSENING' | 'NONE';
@@ -31,21 +30,10 @@ export interface BiomarkerTrend {
   previous_measured_at: string | null; // Fecha de la medición anterior
 }
 
-export interface WeeklyActionDisplay {
-  weekly_action_id: string;
-  title: string; // Plain language title (from i18n key)
-  category: string;
-  weekly_target: string;
-  progress: number;
-  completion_state: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
-  impacted_biomarkers: BiomarkerKey[];
-}
-
 export interface DashboardData {
   health_score: number;
   score_trend: TrendDirection;
   biomarkers: BiomarkerTrend[];
-  weekly_actions: WeeklyActionDisplay[];
   // Baseline validation: true ONLY if there's a previous exam with different date
   hasBaseline?: boolean;
   baselineDate?: string | null; // YYYY-MM-DD format
@@ -93,7 +81,7 @@ export function calculateBiomarkerTrend(
   }
   
   // Determine if higher is better for this biomarker
-  const higherIsBetter = biomarker === 'HDL' || biomarker === 'EGFR';
+  const higherIsBetter = biomarker === 'HDL';
   
   // Calculate normalized delta
   const delta = (current - previous) / previous;
@@ -175,30 +163,6 @@ export function statusToTrafficLight(status: Status): 'GREEN' | 'YELLOW' | 'ORAN
 }
 
 /**
- * Formats weekly action for display
- * 
- * Converts action_id to title key for i18n.
- * Frontend will resolve the actual text.
- */
-export function formatWeeklyActionForDisplay(
-  action: WeeklyActionInstance
-): WeeklyActionDisplay {
-  // Title key format: {action_id}.title
-  // Frontend will resolve via i18n
-  const titleKey = `${action.action_id}.title`;
-  
-  return {
-    weekly_action_id: action.id,
-    title: titleKey, // Frontend resolves this
-    category: action.category,
-    weekly_target: action.weekly_target,
-    progress: action.progress,
-    completion_state: action.completion_state,
-    impacted_biomarkers: action.impacted_biomarkers as BiomarkerKey[]
-  };
-}
-
-/**
  * Gets the two most recent exams for comparison
  * 
  * COMPARISON RULE:
@@ -261,7 +225,7 @@ export async function buildDashboardData(
   currentScore: number,
   previousScore: number | null,
   _previousBiomarkers: Array<{ biomarker: BiomarkerKey; value: number }> | null, // Not used anymore - kept for compatibility
-  weeklyActions: WeeklyActionInstance[],
+  _weeklyActions: unknown[], // Kept for call-site compatibility, no longer used
   exams: Array<{ examDate: string }> // All exams for baseline calculation
 ): Promise<DashboardData> {
   // Calculate score trend (last vs second-to-last only)
@@ -357,22 +321,16 @@ export async function buildDashboardData(
       };
     });
   
-  // Format weekly actions (max 3)
-  const formattedActions = weeklyActions
-    .slice(0, 3)
-    .map(formatWeeklyActionForDisplay);
-  
   // ========================================
   // PASO 3: Calcular fiabilidad (cobertura de datos)
   // ========================================
   const { calculateReliability } = await import('./biomarker-state.service');
   const reliabilityData = calculateReliability(biomarkerStates);
-  
+
   return {
     health_score: currentScore,
     score_trend: scoreTrend,
     biomarkers,
-    weekly_actions: formattedActions,
     hasBaseline,
     baselineDate,
     reliability: {
