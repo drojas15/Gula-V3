@@ -17,6 +17,23 @@ export const BIOMARKER_NAMES: Record<string, string> = {
   URIC_ACID: 'Ácido Úrico',
 };
 
+export const getBiomarkerName = (key: string): string =>
+  BIOMARKER_NAMES[key] ?? key;
+
+export const BIOMARKER_UNITS: Record<string, string> = {
+  LDL: 'mg/dL',
+  HBA1C: '%',
+  FASTING_GLUCOSE: 'mg/dL',
+  TRIGLYCERIDES: 'mg/dL',
+  HDL: 'mg/dL',
+  HS_CRP: 'mg/L',
+  CRP_STANDARD: 'mg/L',
+  ALT: 'U/L',
+  AST: 'U/L',
+  EGFR: 'ml/min',
+  URIC_ACID: 'mg/dL',
+};
+
 export const BIOMARKER_DESCRIPTIONS: Record<string, string> = {
   LDL: "Colesterol 'malo'. Niveles altos aumentan el riesgo cardiovascular.",
   HBA1C: 'Promedio de glucosa en sangre durante los últimos 3 meses. Indicador de diabetes.',

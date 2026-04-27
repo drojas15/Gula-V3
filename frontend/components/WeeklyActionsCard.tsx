@@ -10,6 +10,7 @@
 import { useState, useMemo } from 'react';
 import { dashboardAPI } from '@/lib/api';
 import { translateHealthKey } from '@/lib/utils/translateHealthKey';
+import { getBiomarkerName } from '@/lib/biomarkers.config';
 import WeeklyFeedbackBanner from './WeeklyFeedbackBanner';
 import ProgressInputModal from './ProgressInputModal';
 
@@ -46,21 +47,6 @@ export default function WeeklyActionsCard({ actions }: WeeklyActionsCardProps) {
     return 'Acción semanal';
   };
 
-  const getBiomarkerName = (biomarker: string): string => {
-    const names: Record<string, string> = {
-      LDL: 'LDL',
-      HBA1C: 'HbA1c',
-      FASTING_GLUCOSE: 'Glucosa',
-      TRIGLYCERIDES: 'TG',
-      ALT: 'ALT',
-      HS_CRP: 'PCR',
-      HDL: 'HDL',
-      AST: 'AST',
-      EGFR: 'eGFR',
-      URIC_ACID: 'Ácido Úrico',
-    };
-    return names[biomarker] || biomarker;
-  };
 
   const formatProgress = (action: WeeklyAction): string => {
     const target = action.weekly_target;

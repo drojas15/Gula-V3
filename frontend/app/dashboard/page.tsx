@@ -41,24 +41,27 @@ function DashboardContent() {
   const fetchData = useCallback(async (forceRefresh = false) => {
     try {
       setLoading(true);
-      
-      // DEV ONLY: Log fetch trigger
+
       if (process.env.NODE_ENV === 'development') {
         console.log('[Dashboard] Fetching data...', { forceRefresh, timestamp: new Date().toISOString() });
       }
-      
-      // Always fetch fresh data - backend is source of truth
-      // PASO 2: Force fetch with no-cache to ensure we get data from active backend
-      const [dashboard, examsData] = await Promise.all([
-        dashboardAPI.getDashboard().catch(err => {
-          console.warn('Error fetching dashboard (non-critical):', err);
-          return null;
-        }),
-        // Fetch exams list to verify backend state
-        examAPI.list().catch(err => {
-          console.warn('Error fetching exams list (non-critical):', err);
-          return { exams: [] };
-        }),
+
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('El servidor tardó demasiado. Intentá de nuevo.')), 15000)
+      );
+
+      const [dashboard, examsData] = await Promise.race([
+        Promise.all([
+          dashboardAPI.getDashboard().catch(err => {
+            console.warn('Error fetching dashboard (non-critical):', err);
+            return null;
+          }),
+          examAPI.list().catch(err => {
+            console.warn('Error fetching exams list (non-critical):', err);
+            return { exams: [] };
+          }),
+        ]),
+        timeout,
       ]);
       
       // User data comes from AuthContext, no need to fetch again

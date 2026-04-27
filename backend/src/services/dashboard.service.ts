@@ -21,11 +21,14 @@ export type BiomarkerTrendDirection = 'IMPROVING' | 'STABLE' | 'WORSENING' | 'NO
 export interface BiomarkerTrend {
   id: BiomarkerKey;
   value: number;
+  unit: string;
   status: Status;
   traffic_light: 'GREEN' | 'YELLOW' | 'ORANGE' | 'RED';
   trend: BiomarkerTrendDirection; // IMPROVING (↑) | STABLE (→) | WORSENING (↓) | NONE
   lastMeasuredAt: string; // YYYY-MM-DD - fecha de última medición
   measurementCount: number; // Número de mediciones históricas
+  previous_value: number | null; // Valor del examen anterior (para mostrar delta)
+  previous_measured_at: string | null; // Fecha de la medición anterior
 }
 
 export interface WeeklyActionDisplay {
@@ -343,11 +346,14 @@ export async function buildDashboardData(
       return {
         id: state.biomarker,
         value: state.value,
+        unit: state.unit || 'mg/dL',
         status: state.status,
         traffic_light: statusToTrafficLight(state.status),
         trend,
         lastMeasuredAt: state.lastMeasuredAt,
-        measurementCount: state.measurementCount
+        measurementCount: state.measurementCount,
+        previous_value: state.previousValue,
+        previous_measured_at: state.previousMeasuredAt
       };
     });
   

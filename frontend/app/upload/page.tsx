@@ -14,21 +14,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { examAPI, userAPI } from '@/lib/api';
 import { t } from '@/lib/i18n';
+import { BIOMARKER_NAMES, getBiomarkerName } from '@/lib/biomarkers.config';
 
-// Los 11 biomarcadores que GULA rastrea
-const ALL_TRACKED_BIOMARKERS = [
-  { key: 'LDL', name: 'Colesterol LDL' },
-  { key: 'HDL', name: 'Colesterol HDL' },
-  { key: 'TRIGLYCERIDES', name: 'Triglicéridos' },
-  { key: 'FASTING_GLUCOSE', name: 'Glucosa en Ayunas' },
-  { key: 'HBA1C', name: 'Hemoglobina Glicosilada' },
-  { key: 'ALT', name: 'ALT (TGP)' },
-  { key: 'AST', name: 'AST (TGO)' },
-  { key: 'HS_CRP', name: 'PCR Ultrasensible' },
-  { key: 'CRP_STANDARD', name: 'PCR Estándar' },
-  { key: 'EGFR', name: 'Filtración Glomerular' },
-  { key: 'URIC_ACID', name: 'Ácido Úrico' },
-];
+const ALL_TRACKED_BIOMARKERS = Object.keys(BIOMARKER_NAMES).map(key => ({ key }));
 
 interface PreviewBiomarker {
   biomarker: string;
@@ -359,7 +347,6 @@ export default function UploadPage() {
           {parsedPreview && parsedPreview.parsedBiomarkers.length > 0 ? (
             <div className="grid grid-cols-2 gap-3">
               {parsedPreview.parsedBiomarkers.map((b) => {
-                const meta = ALL_TRACKED_BIOMARKERS.find(m => m.key === b.biomarker);
                 return (
                   <div
                     key={b.biomarker}
@@ -367,7 +354,7 @@ export default function UploadPage() {
                   >
                     <div className="flex items-start justify-between">
                       <span className="text-xs text-gray-500 font-medium">
-                        {meta?.name || b.biomarker}
+                        {getBiomarkerName(b.biomarker)}
                       </span>
                       {b.confidence === 'low' && (
                         <span className="text-yellow-500 text-xs ml-1" title="Confianza baja">⚠</span>
@@ -401,7 +388,7 @@ export default function UploadPage() {
             <div className="grid grid-cols-2 gap-2">
               {missingBiomarkers.map(b => (
                 <div key={b.key} className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg">
-                  <span className="text-xs text-gray-400">{b.name}</span>
+                  <span className="text-xs text-gray-400">{getBiomarkerName(b.key)}</span>
                   <span className="text-xs text-gray-300 font-bold">—</span>
                 </div>
               ))}

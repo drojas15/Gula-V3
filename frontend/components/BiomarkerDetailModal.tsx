@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { biomarkerAPI, BiomarkerHistoryData } from '@/lib/api';
-import { BIOMARKER_NAMES, BIOMARKER_DESCRIPTIONS } from '@/lib/biomarkers.config';
+import { getBiomarkerName, BIOMARKER_DESCRIPTIONS } from '@/lib/biomarkers.config';
 
 interface Biomarker {
   id: string;
@@ -86,18 +86,20 @@ export default function BiomarkerDetailModal({ biomarker, onClose }: BiomarkerDe
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!biomarker) return;
-
+  const fetchHistory = (id: string) => {
     setHistory(null);
     setError(null);
     setLoading(true);
-
     biomarkerAPI
-      .getHistory(biomarker.id)
+      .getHistory(id)
       .then(setHistory)
       .catch(() => setError('No se pudo cargar el historial'))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    if (!biomarker) return;
+    fetchHistory(biomarker.id);
   }, [biomarker]);
 
   useEffect(() => {
@@ -110,7 +112,7 @@ export default function BiomarkerDetailModal({ biomarker, onClose }: BiomarkerDe
 
   if (!biomarker) return null;
 
-  const name = BIOMARKER_NAMES[biomarker.id] || biomarker.id;
+  const name = getBiomarkerName(biomarker.id);
   const description = BIOMARKER_DESCRIPTIONS[biomarker.id] || '';
 
   return (
@@ -177,7 +179,15 @@ export default function BiomarkerDetailModal({ biomarker, onClose }: BiomarkerDe
             )}
 
             {error && (
-              <div className="text-center py-6 text-red-500 text-sm">{error}</div>
+              <div className="text-center py-6">
+                <p className="text-red-500 text-sm mb-2">{error}</p>
+                <button
+                  onClick={() => fetchHistory(biomarker.id)}
+                  className="text-sm text-blue-600 hover:underline"
+                >
+                  Reintentar
+                </button>
+              </div>
             )}
 
             {!loading && !error && history && (

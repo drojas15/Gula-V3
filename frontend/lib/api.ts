@@ -260,12 +260,14 @@ export interface DashboardData {
   biomarkers: Array<{
     id: string;
     value: number;
+    unit: string;
     status: string;
     traffic_light: 'GREEN' | 'YELLOW' | 'ORANGE' | 'RED';
     trend?: 'IMPROVING' | 'STABLE' | 'WORSENING' | 'NONE';
-    unit?: string;
     lastMeasuredAt?: string;
     measurementCount?: number;
+    previous_value?: number | null;
+    previous_measured_at?: string | null;
   }>;
   weekly_actions: Array<{
     weekly_action_id: string;

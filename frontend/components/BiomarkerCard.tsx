@@ -10,6 +10,7 @@
 import { Biomarker } from '@/types';
 import { t } from '@/lib/i18n';
 import { translateHealthKey } from '@/lib/utils/translateHealthKey';
+import { getBiomarkerName } from '@/lib/biomarkers.config';
 import RecommendationCard from './RecommendationCard';
 
 interface BiomarkerCardProps {
@@ -45,23 +46,6 @@ export default function BiomarkerCard({ biomarker }: BiomarkerCardProps) {
       default:
         return 'text-gray-700';
     }
-  };
-
-  const getBiomarkerName = (biomarker: string): string => {
-    const names: Record<string, string> = {
-      LDL: 'Colesterol LDL',
-      HBA1C: 'Hemoglobina Glicosilada',
-      HBAIC: 'Hemoglobina Glicosilada', // Legacy support
-      FASTING_GLUCOSE: 'Glucosa en Ayunas',
-      TRIGLYCERIDES: 'Triglicéridos',
-      ALT: 'ALT',
-      HS_CRP: 'PCR Ultrasensible',
-      HDL: 'Colesterol HDL',
-      AST: 'AST',
-      EGFR: 'Filtración Glomerular',
-      URIC_ACID: 'Ácido Úrico',
-    };
-    return names[biomarker] || biomarker;
   };
 
   return (
