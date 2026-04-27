@@ -7,7 +7,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { calculateHealthScoreWithAnalysis, BiomarkerValue } from '../services/scoring-engine.service';
-import { BiomarkerKey, BIOMARKERS } from '../config/biomarkers.config';
+import { BIOMARKERS } from '../config/biomarkers.config';
 import { 
   updateWeeklyActionProgress as updateProgressInDB,
   getActiveWeeklyActions

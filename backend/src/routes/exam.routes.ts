@@ -176,7 +176,7 @@ router.post(
         );
         console.log('✅ Health score actualizado en PostgreSQL:', {
           examId,
-          healthScore: analysis.totalScore
+          healthScore: fullAnalysis.totalScore
         });
       } catch (error: any) {
         console.error('Error updating health score in PostgreSQL:', error);
