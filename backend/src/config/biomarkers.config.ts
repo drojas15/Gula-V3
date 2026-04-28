@@ -41,15 +41,15 @@ export interface BiomarkerRanges {
  * HIGHER_IS_BETTER: HDL
  */
 export const BIOMARKERS: Record<BiomarkerKey, BiomarkerConfig> = {
-  LDL:             { weight: 1.5, unit: 'mg/dL' },
-  FASTING_GLUCOSE: { weight: 1.5, unit: 'mg/dL' },
-  TRIGLYCERIDES:   { weight: 1.2, unit: 'mg/dL' },
-  VLDL:            { weight: 1.0, unit: 'mg/dL' },
-  HDL:             { weight: 1.2, unit: 'mg/dL' },
-  ALT:             { weight: 1.0, unit: 'U/L'   },
-  AST:             { weight: 0.8, unit: 'U/L'   },
-  URIC_ACID:       { weight: 0.8, unit: 'mg/dL' },
-  HS_CRP:          { weight: 1.3, unit: 'mg/L'  },
+  FASTING_GLUCOSE: { weight: 1.8, unit: 'mg/dL' },
+  LDL:             { weight: 1.6, unit: 'mg/dL' },
+  HDL:             { weight: 1.4, unit: 'mg/dL' },
+  TRIGLYCERIDES:   { weight: 1.3, unit: 'mg/dL' },
+  VLDL:            { weight: 1.2, unit: 'mg/dL' },
+  HS_CRP:          { weight: 1.2, unit: 'mg/L'  },
+  ALT:             { weight: 1.1, unit: 'U/L'   },
+  AST:             { weight: 1.0, unit: 'U/L'   },
+  URIC_ACID:       { weight: 1.0, unit: 'mg/dL' },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -80,12 +80,10 @@ export const RANGES_MALE: BiomarkerRanges = {
     CRITICAL:     { min: 500 },
   },
 
-  // VLDL (mg/dL) — LOWER_IS_BETTER — sin diferencia por sexo
+  // VLDL (mg/dL) — LOWER_IS_BETTER — sin diferencia por sexo — solo 2 estados
   VLDL: {
-    OPTIMAL:      { max: 14 },
-    GOOD:         { min: 15, max: 19 },
-    OUT_OF_RANGE: { min: 20, max: 30 },
-    CRITICAL:     { min: 31 },
+    OPTIMAL:  { min: 0, max: 40 },
+    CRITICAL: { min: 41 },
   },
 
   // HDL (mg/dL) — HIGHER_IS_BETTER — AHA/ACC, hombre
@@ -140,32 +138,32 @@ export const RANGES_FEMALE: BiomarkerRanges = {
   HDL: {
     OPTIMAL:      { min: 65 },
     GOOD:         { min: 50, max: 64 },
-    OUT_OF_RANGE: { min: 40, max: 49 },
-    CRITICAL:     { max: 39 },
+    OUT_OF_RANGE: { min: 35, max: 49 },
+    CRITICAL:     { max: 34 },
   },
 
   // ALT / TGP (U/L) — LOWER_IS_BETTER — AASLD 2023, mujer
   ALT: {
     OPTIMAL:      { min: 0,  max: 20 },
-    GOOD:         { min: 21, max: 30 },
-    OUT_OF_RANGE: { min: 31, max: 60 },
-    CRITICAL:     { min: 61 },
+    GOOD:         { min: 21, max: 32 },
+    OUT_OF_RANGE: { min: 33, max: 65 },
+    CRITICAL:     { min: 66 },
   },
 
   // AST / TGO (U/L) — LOWER_IS_BETTER — AASLD 2023, mujer
   AST: {
     OPTIMAL:      { min: 0,  max: 20 },
-    GOOD:         { min: 21, max: 30 },
-    OUT_OF_RANGE: { min: 31, max: 60 },
-    CRITICAL:     { min: 61 },
+    GOOD:         { min: 21, max: 32 },
+    OUT_OF_RANGE: { min: 33, max: 65 },
+    CRITICAL:     { min: 66 },
   },
 
   // Ácido Úrico (mg/dL) — LOWER_IS_BETTER — EULAR, mujer
   URIC_ACID: {
     OPTIMAL:      { min: 0,   max: 4.5 },
-    GOOD:         { min: 4.6, max: 5.7 },
-    OUT_OF_RANGE: { min: 5.8, max: 7.0 },
-    CRITICAL:     { min: 7.1 },
+    GOOD:         { min: 4.6, max: 5.8 },
+    OUT_OF_RANGE: { min: 5.9, max: 7.5 },
+    CRITICAL:     { min: 7.6 },
   },
 };
 
