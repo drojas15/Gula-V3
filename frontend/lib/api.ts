@@ -254,6 +254,37 @@ export const examAPI = {
 // DASHBOARD API
 // ============================================
 
+export interface WeeklyPlanActivity {
+  id: string;
+  weekly_plan_id: string;
+  activity_id: string;
+  personalized_text: string;
+  category: string;
+  title: string;
+  evidence_level: string;
+  requires_medical_disclaimer: boolean;
+  note?: string;
+  primary_biomarker: string;
+  primary_value: number;
+  primary_unit: string;
+  was_swapped: boolean;
+  swapped_from_activity_id?: string;
+  days_completed: number;
+  completed_today: boolean;
+}
+
+export interface WeeklyPlan {
+  id: string;
+  user_id: string;
+  exam_id?: string;
+  started_at: string;
+  ends_at: string;
+  status: 'active' | 'completed' | 'skipped';
+  activities_continuation?: string;
+  activities: WeeklyPlanActivity[];
+  days_remaining: number;
+}
+
 export interface DashboardData {
   health_score: number;
   score_trend: 'UP' | 'STABLE' | 'DOWN' | 'NONE';
@@ -276,6 +307,7 @@ export interface DashboardData {
     measuredCount: number;
     totalCount: number;
   };
+  weekly_plan?: WeeklyPlan | null;
 }
 
 export const dashboardAPI = {
@@ -442,6 +474,52 @@ export const weeklyTransitionAPI = {
       throw new Error(`Failed to dismiss transition: ${response.statusText}`);
     }
 
+    return response.json();
+  },
+};
+
+// ============================================
+// WEEKLY PLAN API
+// ============================================
+
+export const weeklyPlanAPI = {
+  /** Log "Lo hice hoy" for a plan activity */
+  logCompletion: async (planActivityId: string): Promise<{ success: boolean; already_logged: boolean; days_completed: number }> => {
+    const response = await fetch(`${API_BASE_URL}/weekly-plan/${planActivityId}/log`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to log activity');
+    return response.json();
+  },
+
+  /** Swap one activity for another */
+  swap: async (planActivityId: string): Promise<{ activity: WeeklyPlanActivity }> => {
+    const response = await fetch(`${API_BASE_URL}/weekly-plan/${planActivityId}/swap`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to swap activity');
+    return response.json();
+  },
+
+  /** Get weekly summary for a plan */
+  getSummary: async (planId: string) => {
+    const response = await fetch(`${API_BASE_URL}/weekly-plan/${planId}/summary`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to get summary');
+    return response.json();
+  },
+
+  /** Choose next week mode */
+  setContinuation: async (planId: string, mode: 'same' | 'new' | 'mixed', keepIds?: string[]) => {
+    const response = await fetch(`${API_BASE_URL}/weekly-plan/${planId}/continue`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode, keep_activity_ids: keepIds }),
+    });
+    if (!response.ok) throw new Error('Failed to set continuation');
     return response.json();
   },
 };

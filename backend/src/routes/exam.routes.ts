@@ -13,6 +13,7 @@ import { getLatestBiomarkerState } from '../services/biomarker-state.service';
 import { BIOMARKERS } from '../config/biomarkers.config';
 import { eventBus, LabResultsIngestedEvent } from '../events/event-bus';
 import { query as dbQuery, queryOne, execute } from '../db/postgres';
+import { createWeeklyPlan } from '../services/weekly-plan.service';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -168,6 +169,26 @@ router.post(
       } catch (error: any) {
         console.error('Error updating health score in PostgreSQL:', error);
       }
+
+      // Generate weekly plan from full biomarker state (fire-and-forget, non-blocking)
+      const planBiomarkers = latestValues
+        .filter(v => {
+          const analyzed = fullAnalysis.biomarkers.find(b => b.biomarker === v.biomarker);
+          return analyzed !== undefined;
+        })
+        .map(v => {
+          const analyzed = fullAnalysis.biomarkers.find(b => b.biomarker === v.biomarker)!;
+          return {
+            biomarker: v.biomarker,
+            value: v.value,
+            unit: v.unit,
+            status: analyzed.status,
+          };
+        });
+
+      createWeeklyPlan(req.userId!, examId, planBiomarkers).catch(err =>
+        console.error('[WeeklyPlan] Failed to create plan after exam upload:', err)
+      );
 
       res.status(201).json({
         examId,

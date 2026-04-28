@@ -15,10 +15,12 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useState, useMemo, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { dashboardAPI, examAPI, DashboardData } from '@/lib/api';
+import { dashboardAPI, examAPI, DashboardData, WeeklyPlan } from '@/lib/api';
 import HealthScoreCard from '@/components/HealthScoreCard';
 import ReliabilityBar from '@/components/ReliabilityBar';
 import BiomarkersListCard from '@/components/BiomarkersListCard';
+import WeeklyPlanCard from '@/components/WeeklyPlanCard';
+import WeeklySummary from '@/components/WeeklySummary';
 import OnboardingTooltips, { useOnboarding } from '@/components/OnboardingTooltips';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
@@ -34,6 +36,10 @@ function DashboardContent() {
   
   // Onboarding - CRITICAL: Pass userId to prevent state leakage between users
   const { shouldShowOnboarding, completeOnboarding, skipOnboarding } = useOnboarding(user?.id || null);
+
+  const handlePlanUpdate = useCallback((updatedPlan: WeeklyPlan) => {
+    setDashboardData(prev => prev ? { ...prev, weekly_plan: updatedPlan } : prev);
+  }, []);
 
   // CRITICAL: Always fetch fresh data from backend (source of truth)
   // This function is called on mount and when explicitly requested
@@ -235,9 +241,25 @@ function DashboardContent() {
               />
             )}
 
-            {/* 3. Biomarcadores (detalle) */}
+            {/* 3. Plan semanal de actividades */}
+            {dashboardData.weekly_plan && dashboardData.weekly_plan.status === 'active' && (
+              <WeeklyPlanCard
+                plan={dashboardData.weekly_plan}
+                onPlanUpdate={handlePlanUpdate}
+              />
+            )}
+
+            {/* Resumen semanal — plan completado */}
+            {dashboardData.weekly_plan && dashboardData.weekly_plan.status === 'completed' && (
+              <WeeklySummary
+                planId={dashboardData.weekly_plan.id}
+                onContinue={() => fetchData(true)}
+              />
+            )}
+
+            {/* 4. Biomarcadores (detalle) */}
             {dashboardData.biomarkers && dashboardData.biomarkers.length > 0 && (
-              <BiomarkersListCard 
+              <BiomarkersListCard
                 biomarkers={dashboardData.biomarkers}
                 hasBaseline={hasBaseline}
               />

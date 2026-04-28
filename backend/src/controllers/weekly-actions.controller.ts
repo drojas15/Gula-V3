@@ -154,16 +154,21 @@ export async function getDashboard(req: AuthRequest, res: Response): Promise<voi
     // ========================================
     const { buildDashboardData } = await import('../services/dashboard.service');
     const dashboardData = await buildDashboardData(
-      req.userId!, // Pass userId for independent biomarker state
+      req.userId!,
       currentAnalysis.biomarkers,
       currentAnalysis.totalScore,
       previousScore,
       null,
-      [], // weekly_actions removed
-      exams // Pass all exams for baseline calculation
+      [],
+      exams
     );
 
-    res.json(dashboardData);
+    // Attach active weekly plan (non-blocking — null if none exists)
+    const { getActivePlan, expirePlans } = await import('../services/weekly-plan.service');
+    await expirePlans();
+    const activePlan = await getActivePlan(req.userId!).catch(() => null);
+
+    res.json({ ...dashboardData, weekly_plan: activePlan });
   } catch (error: any) {
     console.error('Error getting dashboard:', error);
     res.status(500).json({ error: error.message || 'Failed to get dashboard data' });

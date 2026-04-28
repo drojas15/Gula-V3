@@ -10,9 +10,10 @@ import { BiomarkerKey } from '../config/biomarkers.config';
 /**
  * Canonical biomarker codes (English, internal only)
  */
-export type CanonicalBiomarker = 
+export type CanonicalBiomarker =
   | 'LDL'
   | 'TRIGLYCERIDES'
+  | 'VLDL'
   | 'HDL'
   | 'GLUCOSE_FASTING'
   | 'HBA1C'
@@ -66,6 +67,18 @@ export const BIOMARKER_ALIASES: Record<CanonicalBiomarker, string[]> = {
     'TRIGLICERIDOS TOTALES',
     'TRIGLYCERIDES',
     'TG'
+  ],
+
+  // VLDL - Colesterol de muy baja densidad
+  VLDL: [
+    'VLDL',
+    'VLDL-C',
+    'COLESTEROL VLDL',
+    'VLDL COLESTEROL',
+    'COLESTEROL DE MUY BAJA DENSIDAD',
+    'LIPOPROTEINA DE MUY BAJA DENSIDAD',
+    'VERY LOW DENSITY LIPOPROTEIN',
+    'C-VLDL'
   ],
   
   // GLUCOSE_FASTING - Glucosa en ayunas
@@ -182,6 +195,7 @@ export function mapCanonicalToBiomarkerKey(canonical: CanonicalBiomarker): Bioma
   const mapping: Record<CanonicalBiomarker, BiomarkerKey | null> = {
     LDL: 'LDL',
     TRIGLYCERIDES: 'TRIGLYCERIDES',
+    VLDL: 'VLDL',
     HDL: 'HDL',
     GLUCOSE_FASTING: 'FASTING_GLUCOSE',
     HBA1C: null,          // Removed from active biomarkers

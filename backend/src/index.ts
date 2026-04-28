@@ -11,6 +11,7 @@ import weeklyActionsRoutes from './routes/weekly-actions.routes';
 import biomarkerHistoryRoutes from './routes/biomarker-history.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import weeklyTransitionRoutes from './routes/weekly-transition.routes';
+import weeklyPlanRoutes from './routes/weekly-plan.routes';
 import { initializeCronJobs } from './jobs/cron';
 import './events/event-handlers'; // Register event handlers
 
@@ -38,6 +39,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/weekly-actions', weeklyActionsRoutes);
 app.use('/api/biomarkers', biomarkerHistoryRoutes);
 app.use('/api/weekly-transition', weeklyTransitionRoutes);
+app.use('/api/weekly-plan', weeklyPlanRoutes);
 
 // Error handling middleware
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
