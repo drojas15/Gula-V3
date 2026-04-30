@@ -188,7 +188,7 @@ export default function WeeklyPlanCard({ plan, onPlanUpdate }: WeeklyPlanCardPro
           </p>
         </div>
         <span className="text-xs text-gray-400 bg-white px-3 py-1 rounded-full border">
-          3 actividades
+          {visible.length} actividad{visible.length !== 1 ? 'es' : ''}
         </span>
       </div>
 

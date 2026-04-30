@@ -118,13 +118,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       });
       
-      // Clear user-specific onboarding state from localStorage
-      if (currentUserId) {
-        localStorage.removeItem(`gula_onboarding_completed_${currentUserId}`);
-      }
-      
-      // Also clear old onboarding key (for backwards compatibility)
-      localStorage.removeItem('gula_onboarding_completed');
+      // NOTE: Intentionally NOT clearing gula_onboarding_completed_* keys on logout.
+      // The tour should only show once per user, not on every session.
+      // The key is indexed by userId so there's no leakage between users.
     }
     
     router.push('/login');

@@ -72,6 +72,12 @@ function DashboardContent() {
       // User data comes from AuthContext, no need to fetch again
       setDashboardData(dashboard);
       setExams(examsData.exams || []); // For debug visualization
+
+      // Auto-skip onboarding tour for users who already have exams
+      // (covers case where localStorage was cleared but user is not new)
+      if ((examsData.exams?.length ?? 0) > 0) {
+        skipOnboarding();
+      }
       
       // DEV ONLY: Log fetched data
       if (process.env.NODE_ENV === 'development') {
@@ -98,7 +104,7 @@ function DashboardContent() {
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, [router, skipOnboarding]);
 
   // Fetch data on mount and when refresh param is present
   useEffect(() => {

@@ -206,8 +206,11 @@ async function getActivitiesWithProgress(
       [row.id, userId]
     );
 
-    const daysCompleted = logs.length;
-    const completedToday = logs.some(l => l.log_date.toString().startsWith(today));
+    // Count unique days completed (avoid duplicates if any)
+    const uniqueDays = new Set(logs.map(l => new Date(l.log_date).toISOString().split('T')[0]));
+    const daysCompleted = uniqueDays.size;
+    // pg returns DATE columns as JS Date objects, so we must normalize before comparing
+    const completedToday = uniqueDays.has(today);
 
     return {
       id: row.id,
