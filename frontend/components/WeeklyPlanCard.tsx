@@ -26,7 +26,7 @@ const EVIDENCE_LABELS: Record<string, string> = {
   limitada: 'Evidencia limitada',
 };
 
-function DayDots({ daysCompleted, completedToday }: { daysCompleted: number; completedToday: boolean }) {
+function DayDots({ daysCompleted, completedToday: _completedToday }: { daysCompleted: number; completedToday: boolean }) {
   return (
     <div className="flex items-center gap-1 mt-2">
       {Array.from({ length: 7 }).map((_, i) => (
