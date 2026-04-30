@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { examAPI, userAPI } from '@/lib/api';
 import { t } from '@/lib/i18n';
@@ -52,7 +52,6 @@ export default function UploadPage() {
   const [resetLoading, setResetLoading] = useState(false);
   const [resetSuccess, setResetSuccess] = useState<string | null>(null);
   const [resetError, setResetError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleReset = async () => {
     if (!resetConfirm) {
@@ -211,22 +210,11 @@ export default function UploadPage() {
                 Selecciona tu archivo PDF
               </label>
               <input
-                ref={fileInputRef}
                 type="file"
                 accept=".pdf"
                 onChange={handleFileChange}
-                className="absolute opacity-0 w-px h-px overflow-hidden"
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
               />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="px-4 py-2 rounded-full text-sm font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition border border-blue-200"
-              >
-                Elegir archivo
-              </button>
-              {!file && (
-                <span className="ml-3 text-sm text-gray-500">Ningún archivo elegido</span>
-              )}
             </div>
 
             {file && (
