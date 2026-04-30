@@ -32,6 +32,7 @@ function DashboardContent() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [exams, setExams] = useState<any[]>([]); // For debug visualization
   const [loading, setLoading] = useState(true);
+  const [slowLoading, setSlowLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   // Onboarding - CRITICAL: Pass userId to prevent state leakage between users
@@ -46,13 +47,18 @@ function DashboardContent() {
   const fetchData = useCallback(async (forceRefresh = false) => {
     try {
       setLoading(true);
+      setSlowLoading(false);
+      setError(null);
 
       if (process.env.NODE_ENV === 'development') {
         console.log('[Dashboard] Fetching data...', { forceRefresh, timestamp: new Date().toISOString() });
       }
 
+      // Show "warming up" message after 6s (Railway cold start can take 20-30s)
+      const slowTimer = setTimeout(() => setSlowLoading(true), 6000);
+
       const timeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('El servidor tardó demasiado. Intentá de nuevo.')), 15000)
+        setTimeout(() => reject(new Error('El servidor tardó demasiado. Intentá de nuevo.')), 35000)
       );
 
       const [dashboard, examsData] = await Promise.race([
@@ -68,7 +74,10 @@ function DashboardContent() {
         ]),
         timeout,
       ]);
-      
+
+      clearTimeout(slowTimer);
+      setSlowLoading(false);
+
       // User data comes from AuthContext, no need to fetch again
       setDashboardData(dashboard);
       setExams(examsData.exams || []); // For debug visualization
@@ -96,6 +105,7 @@ function DashboardContent() {
       setError(null);
     } catch (err: any) {
       console.error('Error loading dashboard:', err);
+      setSlowLoading(false);
       if (err.response?.status === 401 || err.response?.status === 403) {
         router.push('/login');
       } else {
@@ -160,7 +170,12 @@ function DashboardContent() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-2xl">Cargando...</div>
+        <div className="text-center">
+          <div className="text-xl text-gray-700 mb-2">Cargando...</div>
+          {slowLoading && (
+            <p className="text-sm text-gray-400">Despertando el servidor, puede tomar unos segundos...</p>
+          )}
+        </div>
       </div>
     );
   }
@@ -172,8 +187,8 @@ function DashboardContent() {
           <div className="text-2xl text-red-600 mb-4">Error</div>
           <p className="text-gray-600 mb-4">{error}</p>
           <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+            onClick={() => fetchData(true)}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
           >
             Reintentar
           </button>
