@@ -102,9 +102,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    // Store userId before clearing state (needed for cleanup)
-    const currentUserId = user?.id;
-    
     authAPI.logout();
     setUser(null);
     
