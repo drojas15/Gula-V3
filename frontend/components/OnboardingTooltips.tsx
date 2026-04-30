@@ -13,7 +13,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface OnboardingTooltipsProps {
   onComplete: () => void;
@@ -218,21 +218,19 @@ export function useOnboarding(userId: string | null) {
     }
   }, [userId]);
 
-  const completeOnboarding = () => {
+  const completeOnboarding = useCallback(() => {
     if (!userId) return;
-    
     const onboardingKey = `gula_onboarding_completed_${userId}`;
     localStorage.setItem(onboardingKey, 'true');
     setShouldShowOnboarding(false);
-  };
+  }, [userId]);
 
-  const skipOnboarding = () => {
+  const skipOnboarding = useCallback(() => {
     if (!userId) return;
-    
     const onboardingKey = `gula_onboarding_completed_${userId}`;
     localStorage.setItem(onboardingKey, 'true');
     setShouldShowOnboarding(false);
-  };
+  }, [userId]);
 
   return {
     shouldShowOnboarding,
