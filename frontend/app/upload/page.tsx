@@ -215,7 +215,7 @@ export default function UploadPage() {
                 type="file"
                 accept=".pdf"
                 onChange={handleFileChange}
-                className="hidden"
+                className="absolute opacity-0 w-px h-px overflow-hidden"
               />
               <button
                 type="button"
