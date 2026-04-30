@@ -206,15 +206,23 @@ export default function UploadPage() {
 
           <div className="bg-white rounded-lg shadow-md p-8">
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <p className="block text-sm font-medium text-gray-700 mb-2">
                 Selecciona tu archivo PDF
+              </p>
+              <label className="cursor-pointer inline-flex items-center gap-3">
+                <span className="px-4 py-2 rounded-full text-sm font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition border border-blue-200">
+                  Elegir archivo
+                </span>
+                <span className="text-sm text-gray-500">
+                  {file ? file.name : 'Ningún archivo elegido'}
+                </span>
+                <input
+                  type="file"
+                  accept=".pdf"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
               </label>
-              <input
-                type="file"
-                accept=".pdf"
-                onChange={handleFileChange}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-              />
             </div>
 
             {file && (
